@@ -33,3 +33,6 @@ dist
 github/
 
 github/
+*.exe
+build/
+*.spec
