@@ -254,10 +254,11 @@ function Hero() {
     <section id="home" className="relative min-h-screen overflow-hidden bg-black text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(0,180,255,0.15),transparent_30%),linear-gradient(135deg,#000,#111_45%,#050505)]" />
       <div
-        className="absolute inset-0 bg-center bg-no-repeat opacity-25 mix-blend-screen"
+        className="absolute inset-0 bg-no-repeat opacity-10 mix-blend-screen"
         style={{
           backgroundImage: `url("${logoBackground}")`,
-          backgroundSize: "min(82vw, 980px)",
+          backgroundSize: "min(42vw, 560px)",
+          backgroundPosition: "72% 48%",
           backgroundAttachment: "fixed",
         }}
       />
@@ -950,10 +951,9 @@ export default function ModernScrollWebsite() {
   return (
     <main
       className="min-h-screen scroll-smooth bg-black bg-fixed bg-center bg-no-repeat font-sans"
-      style={{
-        backgroundImage: `linear-gradient(rgba(0,0,0,0.76), rgba(0,0,0,0.82)), url("${logoBackground}")`,
-        backgroundSize: "cover, min(82vw, 980px)",
-      }}
+        style={{
+          backgroundImage: "linear-gradient(rgba(0,0,0,0.88), rgba(0,0,0,0.92))",
+        }}
     >
       <ProgressBar />
       <Header />
