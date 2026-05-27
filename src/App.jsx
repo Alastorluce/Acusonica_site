@@ -211,6 +211,8 @@ function AmbientAudio({ onPulseChange }) {
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
   const hasStartedRef = useRef(false);
+  const previousBassRef = useRef(0);
+  const transientPeakRef = useRef(0);
 
   useEffect(() => {
     const startAudio = async () => {
@@ -243,8 +245,8 @@ function AmbientAudio({ onPulseChange }) {
 
         const analyser = audioContext.createAnalyser();
 
-        analyser.fftSize = 256;
-        analyser.smoothingTimeConstant = 0.82;
+        analyser.fftSize = 2048;
+        analyser.smoothingTimeConstant = 0.62;
 
         analyserRef.current = analyser;
 
@@ -286,12 +288,46 @@ function AmbientAudio({ onPulseChange }) {
         const analyzeBass = () => {
           analyser.getByteFrequencyData(frequencyData);
 
-          const bassBins = frequencyData.slice(1, 8);
-          const bassAverage =
-            bassBins.reduce((sum, value) => sum + value, 0) / bassBins.length;
+          const bassBins = frequencyData.slice(1, 14);
+          const bassWeights = [
+            3.6,
+            3.2,
+            2.8,
+            2.3,
+            1.8,
+            1.4,
+            1.1,
+            0.8,
+            0.6,
+            0.45,
+            0.3,
+            0.2,
+            0.15,
+          ];
 
-          const normalizedBass = Math.min(1, bassAverage / 180);
-          const pulse = 1 + normalizedBass * 0.42;
+          const weightedBassSum = bassBins.reduce((sum, value, index) => {
+            return sum + value * bassWeights[index];
+          }, 0);
+
+          const weightSum = bassWeights.reduce((sum, value) => sum + value, 0);
+          const weightedBassAverage = weightedBassSum / weightSum;
+
+          const bassLevel = weightedBassAverage / 255;
+          const bassRise = Math.max(0, bassLevel - previousBassRef.current);
+
+          previousBassRef.current = previousBassRef.current * 0.58 + bassLevel * 0.42;
+
+          const transientAmount = Math.min(1, bassRise * 14);
+
+          transientPeakRef.current = Math.max(
+            transientAmount,
+            transientPeakRef.current * 0.82
+          );
+
+          const bodyPulse = bassLevel * 0.18;
+          const transientPulse = transientPeakRef.current * 0.58;
+
+          const pulse = 1 + bodyPulse + transientPulse;
 
           onPulseChange(pulse);
 
@@ -306,6 +342,8 @@ function AmbientAudio({ onPulseChange }) {
         window.removeEventListener("keydown", startAudio);
       } catch (error) {
         hasStartedRef.current = false;
+        previousBassRef.current = 0;
+        transientPeakRef.current = 0;
         onPulseChange(1);
       }
     };
@@ -1055,11 +1093,11 @@ function Contact({ audioPulse }) {
         }}
         animate={{
           scale: audioPulse,
-          opacity: Math.min(0.62, 0.24 + (audioPulse - 1) * 2.2),
-          filter: `blur(${Math.max(0, 2.8 - (audioPulse - 1) * 8)}px)`,
+          opacity: Math.min(0.72, 0.22 + (audioPulse - 1) * 1.7),
+          filter: `blur(${Math.max(0, 2.4 - (audioPulse - 1) * 7)}px)`,
         }}
         transition={{
-          duration: 0.035,
+          duration: 0.028,
           ease: "easeOut",
         }}
       />
