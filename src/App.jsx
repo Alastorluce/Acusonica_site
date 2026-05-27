@@ -1193,7 +1193,7 @@ function Contact({ audioPulse }) {
     <section id="contact" className="relative min-h-screen overflow-hidden bg-black/70 px-6 py-28 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_32%,rgba(255,255,255,0.18),transparent_30%)]" />
 
-      <div className="pointer-events-none absolute left-1/2 top-[27%] h-[260px] w-[94vw] -translate-x-1/2 md:top-[28%] md:h-[420px] md:w-[76vw]">
+      <div className="pointer-events-none absolute left-1/2 top-[18%] h-[260px] w-[94vw] -translate-x-1/2 md:top-[24%] md:h-[420px] md:w-[76vw]">
         <motion.div
           className="h-full w-full bg-center bg-contain bg-no-repeat mix-blend-screen"
           style={{
