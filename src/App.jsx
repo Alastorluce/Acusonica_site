@@ -456,8 +456,9 @@ function Header() {
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white p-2 shadow-lg shadow-cyan-500/10">
             <img src={logoIcon} alt="Acusonica" className="h-full w-full object-contain" />
           </span>
-          <span className="max-w-[210px] truncate text-[10px] font-semibold tracking-[0.22em] uppercase sm:max-w-none sm:text-xs md:text-sm md:tracking-[0.32em]">
-            {companyData.name}
+          <span className="max-w-[250px] text-[10px] font-semibold leading-4 tracking-[0.18em] uppercase sm:max-w-none sm:text-xs md:text-sm md:tracking-[0.32em]">
+            <span className="hidden sm:inline">{companyData.name}</span>
+            <span className="inline sm:hidden">ACUSONICA</span>
           </span>
         </a>
 
@@ -488,19 +489,19 @@ function Hero() {
     <section id="home" className="relative min-h-screen overflow-hidden bg-black text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(0,180,255,0.15),transparent_30%),linear-gradient(135deg,#000,#111_45%,#050505)]" />
       <motion.div
-        className="absolute inset-0 bg-no-repeat opacity-[0.18] mix-blend-screen"
+        className="absolute inset-0 bg-no-repeat opacity-[0.34] mix-blend-screen md:opacity-[0.18]"
         style={{
           backgroundImage: `url("${logoBackground}")`,
-          backgroundSize: "min(42vw, 560px)",
-          backgroundPosition: "80% 20%",
+          backgroundSize: "min(78vw, 420px)",
+          backgroundPosition: "86% 15%",
         }}
         animate={{
-          scale: [1, 1.045, 1],
-          x: [0, 8, 0],
-          y: [0, -6, 0],
+          scale: [1, 1.08, 1],
+          x: [0, 10, 0],
+          y: [0, -8, 0],
         }}
         transition={{
-          duration: 9,
+          duration: 8,
           repeat: Infinity,
           ease: "easeInOut",
         }}
