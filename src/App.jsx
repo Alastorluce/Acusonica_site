@@ -291,7 +291,7 @@ function AmbientAudio({ onPulseChange }) {
             bassBins.reduce((sum, value) => sum + value, 0) / bassBins.length;
 
           const normalizedBass = Math.min(1, bassAverage / 180);
-          const pulse = 1 + normalizedBass * 0.12;
+          const pulse = 1 + normalizedBass * 0.29;
 
           onPulseChange(pulse);
 
@@ -1055,10 +1055,10 @@ function Contact({ audioPulse }) {
         }}
         animate={{
           scale: audioPulse,
-          opacity: Math.min(0.36, 0.22 + (audioPulse - 1) * 1.2),
+          opacity: Math.min(0.52, 0.24 + (audioPulse - 1) * 1.8),
         }}
         transition={{
-          duration: 0.08,
+          duration: 0.045,
           ease: "easeOut",
         }}
       />
