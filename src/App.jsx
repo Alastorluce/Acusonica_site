@@ -709,56 +709,56 @@ function EstimateSection() {
   };
 
   const sendEstimateRequest = async () => {
-    if (isSending) {
-      return;
-    }
+  if (isSending) {
+    return;
+  }
 
-    if (!estimateData.email.trim() || !estimateData.richiesta.trim()) {
-      alert("Inserisci almeno email e richiesta.");
-      return;
-    }
+  if (!estimateData.email.trim() || !estimateData.richiesta.trim()) {
+    alert("Inserisci almeno email e richiesta.");
+    return;
+  }
 
-    const payload = {
-      nome: estimateData.nome,
-      telefono: estimateData.telefono,
-      email: estimateData.email,
-      dataEvento: estimateData.data,
-      luogo: estimateData.luogo,
-      richiesta: estimateData.richiesta,
-    };
+  const formData = new URLSearchParams();
 
-    try {
-      setIsSending(true);
+  formData.append("nome", estimateData.nome);
+  formData.append("telefono", estimateData.telefono);
+  formData.append("email", estimateData.email);
+  formData.append("dataEvento", estimateData.data);
+  formData.append("luogo", estimateData.luogo);
+  formData.append("richiesta", estimateData.richiesta);
 
-      await fetch(GOOGLE_SCRIPT_URL, {
-        method: "POST",
-        mode: "no-cors",
-        headers: {
-          "Content-Type": "text/plain;charset=utf-8",
-        },
-        body: JSON.stringify(payload),
-      });
+  try {
+    setIsSending(true);
 
-      alert(
-        "Richiesta inviata correttamente. Acusonica ti risponderà appena possibile."
-      );
+    await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+      body: formData.toString(),
+    });
 
-      setEstimateData({
-        nome: "",
-        telefono: "",
-        email: "",
-        data: "",
-        luogo: "",
-        richiesta: "",
-      });
-    } catch (error) {
-      alert(
-        "Errore durante l’invio. Riprova oppure scrivi direttamente a acusonica@gmail.com."
-      );
-    } finally {
-      setIsSending(false);
-    }
-  };
+    alert(
+      "Richiesta inviata correttamente. Acusonica ti risponderà appena possibile."
+    );
+
+    setEstimateData({
+      nome: "",
+      telefono: "",
+      email: "",
+      data: "",
+      luogo: "",
+      richiesta: "",
+    });
+  } catch (error) {
+    alert(
+      "Errore durante l’invio. Riprova oppure scrivi direttamente a acusonica@gmail.com."
+    );
+  } finally {
+    setIsSending(false);
+  }
+};
 
   return (
     <section id="preventivo" className="bg-white px-6 py-28 text-black">
