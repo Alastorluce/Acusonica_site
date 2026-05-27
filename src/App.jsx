@@ -317,15 +317,15 @@ function AmbientAudio({ onPulseChange }) {
 
           previousBassRef.current = previousBassRef.current * 0.58 + bassLevel * 0.42;
 
-          const transientAmount = Math.min(1, bassRise * 14);
+          const transientAmount = Math.min(1, bassRise * 7);
 
           transientPeakRef.current = Math.max(
             transientAmount,
-            transientPeakRef.current * 0.82
+            transientPeakRef.current * 0.9
           );
 
-          const bodyPulse = bassLevel * 0.18;
-          const transientPulse = transientPeakRef.current * 0.58;
+          const bodyPulse = bassLevel * 0.12;
+          const transientPulse = transientPeakRef.current * 0.28;
 
           const pulse = 1 + bodyPulse + transientPulse;
 
@@ -1093,11 +1093,11 @@ function Contact({ audioPulse }) {
         }}
         animate={{
           scale: audioPulse,
-          opacity: Math.min(0.72, 0.22 + (audioPulse - 1) * 1.7),
-          filter: `blur(${Math.max(0, 2.4 - (audioPulse - 1) * 7)}px)`,
+          opacity: Math.min(0.5, 0.2 + (audioPulse - 1) * 0.9),
+          filter: `blur(${Math.max(0.8, 2.2 - (audioPulse - 1) * 3.2)}px)`,
         }}
         transition={{
-          duration: 0.028,
+          duration: 0.12,
           ease: "easeOut",
         }}
       />
