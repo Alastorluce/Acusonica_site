@@ -415,32 +415,33 @@ function PreloadGalleryMedia() {
       video.src = src;
     };
 
-    const previewSources = galleryItems.flatMap((item) => mediaSources(item.folder));
-
-    previewSources.forEach((src) => {
-      if (isVideo(src)) {
-        preloadVideoMetadata(src);
-      } else {
-        preloadImage(src);
-      }
-    });
-
     const timeout = window.setTimeout(() => {
+      const previewSources = galleryItems.flatMap((item) => mediaSources(item.folder));
+
+      previewSources.forEach((src) => {
+        if (isVideo(src)) {
+          preloadVideoMetadata(src);
+        } else {
+          preloadImage(src);
+        }
+      });
+    }, 8000);
+
+    const deepTimeout = window.setTimeout(() => {
       galleryItems.forEach((item) => {
         groupedMediaSources(item.folder).forEach((sources) => {
           sources.forEach((src) => {
-            if (isVideo(src)) {
-              preloadVideoMetadata(src);
-            } else {
+            if (!isVideo(src)) {
               preloadImage(src);
             }
           });
         });
       });
-    }, 2500);
+    }, 18000);
 
     return () => {
       window.clearTimeout(timeout);
+      window.clearTimeout(deepTimeout);
     };
   }, []);
 
