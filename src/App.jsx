@@ -687,38 +687,129 @@ function CadSection() {
 }
 
 function EstimateSection() {
+  const [estimateData, setEstimateData] = useState({
+    nome: "",
+    telefono: "",
+    email: "",
+    data: "",
+    luogo: "",
+    richiesta: "",
+  });
+
+  const updateEstimateField = (field, value) => {
+    setEstimateData((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
+  const sendEstimateRequest = () => {
+    const subject = encodeURIComponent("Richiesta preventivo Acusonica");
+
+    const body = encodeURIComponent(
+      `Richiesta preventivo Acusonica
+
+Nome:
+${estimateData.nome}
+
+Telefono:
+${estimateData.telefono}
+
+Email:
+${estimateData.email}
+
+Data evento:
+${estimateData.data}
+
+Luogo evento:
+${estimateData.luogo}
+
+Tipo evento, persone previste, servizi richiesti, note tecniche:
+${estimateData.richiesta}`
+    );
+
+    window.location.href = `mailto:${companyData.email}?subject=${subject}&body=${body}`;
+  };
+
   return (
     <section id="preventivo" className="bg-white px-6 py-28 text-black">
       <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-[0.9fr_1.1fr] md:items-start">
         <div>
-          <p className="mb-4 text-sm font-bold uppercase tracking-[0.35em] text-black/40">Preventivo</p>
+          <p className="mb-4 text-sm font-bold uppercase tracking-[0.35em] text-black/40">
+            Preventivo
+          </p>
+
           <h2 className="text-4xl font-black leading-tight md:text-6xl">
             Racconta l’evento, Acusonica prepara la soluzione tecnica.
           </h2>
+
           <p className="mt-8 text-lg leading-8 text-black/60">
             Inserisci data, luogo, tipologia evento, numero indicativo di persone e servizi richiesti. La richiesta arriva già ordinata per una valutazione rapida.
           </p>
         </div>
 
-        <form
-          action={`mailto:${companyData.email}`}
-          method="post"
-          encType="text/plain"
-          className="rounded-[2rem] border border-black/10 bg-black p-8 text-white shadow-2xl"
-        >
+        <div className="rounded-[2rem] border border-black/10 bg-black p-8 text-white shadow-2xl">
           <div className="grid gap-5 md:grid-cols-2">
-            <input className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35" name="Nome" placeholder="Nome" />
-            <input className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35" name="Telefono" placeholder="Telefono" />
-            <input className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35" name="Email" placeholder="Email" />
-            <input className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35" name="Data evento" placeholder="Data evento" />
-            <input className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35 md:col-span-2" name="Luogo" placeholder="Luogo evento" />
-            <textarea className="min-h-40 rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35 md:col-span-2" name="Richiesta" placeholder="Tipo evento, persone previste, servizi richiesti, note tecniche" />
+            <input
+              className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35"
+              type="text"
+              autoComplete="name"
+              value={estimateData.nome}
+              onChange={(event) => updateEstimateField("nome", event.target.value)}
+              placeholder="Nome"
+            />
+
+            <input
+              className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35"
+              type="tel"
+              autoComplete="tel"
+              value={estimateData.telefono}
+              onChange={(event) => updateEstimateField("telefono", event.target.value)}
+              placeholder="Telefono"
+            />
+
+            <input
+              className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35"
+              type="email"
+              autoComplete="email"
+              value={estimateData.email}
+              onChange={(event) => updateEstimateField("email", event.target.value)}
+              placeholder="Email"
+            />
+
+            <input
+              className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35"
+              type="text"
+              value={estimateData.data}
+              onChange={(event) => updateEstimateField("data", event.target.value)}
+              placeholder="Data evento"
+            />
+
+            <input
+              className="rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35 md:col-span-2"
+              type="text"
+              value={estimateData.luogo}
+              onChange={(event) => updateEstimateField("luogo", event.target.value)}
+              placeholder="Luogo evento"
+            />
+
+            <textarea
+              className="min-h-40 rounded-2xl border border-white/10 bg-white/10 px-5 py-4 outline-none placeholder:text-white/35 md:col-span-2"
+              value={estimateData.richiesta}
+              onChange={(event) => updateEstimateField("richiesta", event.target.value)}
+              placeholder="Tipo evento, persone previste, servizi richiesti, note tecniche"
+            />
           </div>
-          <button className="mt-8 inline-flex items-center gap-3 rounded-full bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:scale-[1.03]" type="submit">
+
+          <button
+            type="button"
+            onClick={sendEstimateRequest}
+            className="mt-8 inline-flex items-center gap-3 rounded-full bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:scale-[1.03]"
+          >
             Invia richiesta
             <Mail size={18} />
           </button>
-        </form>
+        </div>
       </div>
     </section>
   );
