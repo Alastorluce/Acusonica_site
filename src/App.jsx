@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import {
   ArrowRight,
@@ -19,6 +19,7 @@ const basePath = import.meta.env.BASE_URL;
 
 const logoBackground = `${basePath}logo/acusonica logo sito.png`;
 const logoIcon = `${basePath}acusonica icona.png`;
+const ambientAudio = `${basePath}audio/ambience.flac`;
 
 const companyData = {
   name: "ACUSONICA PROFESSIONAL SOUND SOLUTION",
@@ -202,6 +203,74 @@ function groupedMediaSources(folder) {
   return groups;
 }
 
+function AmbientAudio() {
+  const audioRef = useRef(null);
+  const fadeIntervalRef = useRef(null);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+
+  useEffect(() => {
+    if (isAudioEnabled) {
+      return undefined;
+    }
+
+    const startAudio = async () => {
+      const audio = audioRef.current;
+
+      if (!audio || isAudioEnabled) {
+        return;
+      }
+
+      audio.volume = 0;
+      audio.loop = true;
+
+      try {
+        await audio.play();
+
+        setIsAudioEnabled(true);
+
+        const targetVolume = 0.22;
+        const fadeDuration = 6000;
+        const steps = 80;
+        const stepTime = fadeDuration / steps;
+        const volumeStep = targetVolume / steps;
+
+        let currentStep = 0;
+
+        if (fadeIntervalRef.current) {
+          window.clearInterval(fadeIntervalRef.current);
+        }
+
+        fadeIntervalRef.current = window.setInterval(() => {
+          currentStep += 1;
+          audio.volume = Math.min(targetVolume, volumeStep * currentStep);
+
+          if (currentStep >= steps && fadeIntervalRef.current) {
+            window.clearInterval(fadeIntervalRef.current);
+            fadeIntervalRef.current = null;
+          }
+        }, stepTime);
+      } catch (error) {
+        setIsAudioEnabled(false);
+      }
+    };
+
+    window.addEventListener("pointerdown", startAudio);
+    window.addEventListener("keydown", startAudio);
+
+    return () => {
+      window.removeEventListener("pointerdown", startAudio);
+      window.removeEventListener("keydown", startAudio);
+
+      if (fadeIntervalRef.current) {
+        window.clearInterval(fadeIntervalRef.current);
+        fadeIntervalRef.current = null;
+      }
+    };
+  }, [isAudioEnabled]);
+
+  return <audio ref={audioRef} src={ambientAudio} preload="auto" />;
+}
+
 function ProgressBar() {
   const { scrollYProgress } = useScroll();
   const scaleX = useTransform(scrollYProgress, [0, 1], [0, 1]);
@@ -254,23 +323,23 @@ function Hero() {
     <section id="home" className="relative min-h-screen overflow-hidden bg-black text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(0,180,255,0.15),transparent_30%),linear-gradient(135deg,#000,#111_45%,#050505)]" />
       <motion.div
-  className="absolute inset-0 bg-no-repeat opacity-10 mix-blend-screen"
-  style={{
-    backgroundImage: `url("${logoBackground}")`,
-    backgroundSize: "min(42vw, 560px)",
-    backgroundPosition: "80% 20%",
-  }}
-  animate={{
-    scale: [1, 1.045, 1],
-    x: [0, 8, 0],
-    y: [0, -6, 0],
-  }}
-  transition={{
-    duration: 9,
-    repeat: Infinity,
-    ease: "easeInOut",
-  }}
-/>
+        className="absolute inset-0 bg-no-repeat opacity-[0.18] mix-blend-screen"
+        style={{
+          backgroundImage: `url("${logoBackground}")`,
+          backgroundSize: "min(42vw, 560px)",
+          backgroundPosition: "80% 20%",
+        }}
+        animate={{
+          scale: [1, 1.045, 1],
+          x: [0, 8, 0],
+          y: [0, -6, 0],
+        }}
+        transition={{
+          duration: 9,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
       <div className="absolute inset-0 bg-black/35" />
       <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black to-transparent" />
 
@@ -281,11 +350,6 @@ function Hero() {
           transition={{ duration: 0.9, ease: "easeOut" }}
           className="max-w-4xl"
         >
-          <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/75 backdrop-blur">
-            <Volume2 size={16} />
-            Service audio, video e luci
-          </div>
-
           <h1 className="text-5xl font-black leading-[0.95] tracking-tight sm:text-6xl md:text-8xl">
             Un service moderno.
             <span className="block text-white/45">Una soluzione per ogni esigenza.</span>
@@ -755,53 +819,53 @@ function EstimateSection() {
   };
 
   const sendEstimateRequest = async () => {
-  if (isSending) {
-    return;
-  }
+    if (isSending) {
+      return;
+    }
 
-  if (!estimateData.email.trim() || !estimateData.richiesta.trim()) {
-    alert("Inserisci almeno email e richiesta.");
-    return;
-  }
+    if (!estimateData.email.trim() || !estimateData.richiesta.trim()) {
+      alert("Inserisci almeno email e richiesta.");
+      return;
+    }
 
-  const formData = new URLSearchParams();
+    const formData = new URLSearchParams();
 
-  formData.append("nome", estimateData.nome);
-  formData.append("telefono", estimateData.telefono);
-  formData.append("email", estimateData.email);
-  formData.append("dataEvento", estimateData.data);
-  formData.append("luogo", estimateData.luogo);
-  formData.append("richiesta", estimateData.richiesta);
+    formData.append("nome", estimateData.nome);
+    formData.append("telefono", estimateData.telefono);
+    formData.append("email", estimateData.email);
+    formData.append("dataEvento", estimateData.data);
+    formData.append("luogo", estimateData.luogo);
+    formData.append("richiesta", estimateData.richiesta);
 
-  try {
-    setIsSending(true);
+    try {
+      setIsSending(true);
 
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: formData,
-    });
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: formData,
+      });
 
-    alert(
-      "Richiesta inviata correttamente. Acusonica ti risponderà appena possibile."
-    );
+      alert(
+        "Richiesta inviata correttamente. Acusonica ti risponderà appena possibile."
+      );
 
-    setEstimateData({
-      nome: "",
-      telefono: "",
-      email: "",
-      data: "",
-      luogo: "",
-      richiesta: "",
-    });
-  } catch (error) {
-    alert(
-      "Errore durante l’invio. Riprova oppure scrivi direttamente a acusonica@gmail.com."
-    );
-  } finally {
-    setIsSending(false);
-  }
-};
+      setEstimateData({
+        nome: "",
+        telefono: "",
+        email: "",
+        data: "",
+        luogo: "",
+        richiesta: "",
+      });
+    } catch (error) {
+      alert(
+        "Errore durante l’invio. Riprova oppure scrivi direttamente a acusonica@gmail.com."
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <section id="preventivo" className="bg-white px-6 py-28 text-black">
@@ -960,12 +1024,13 @@ export default function ModernScrollWebsite() {
   return (
     <main
       className="min-h-screen scroll-smooth bg-black bg-fixed bg-center bg-no-repeat font-sans"
-        style={{
-          backgroundImage: "linear-gradient(rgba(0,0,0,0.88), rgba(0,0,0,0.92))",
-        }}
+      style={{
+        backgroundImage: "linear-gradient(rgba(0,0,0,0.88), rgba(0,0,0,0.92))",
+      }}
     >
       <ProgressBar />
       <Header />
+      <AmbientAudio />
       <Hero />
       {sections.map((item, index) => (
         <VerticalSection key={item.title} item={item} index={index} />
