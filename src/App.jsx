@@ -169,14 +169,8 @@ function isVideo(path) {
 
 function mediaSources(folder) {
   const fileNames = [
-    "01.jpg",
-    "01.jpeg",
-    "01.png",
     "01.webp",
-    "01.avif",
     "01.mp4",
-    "01.webm",
-    "01.mov",
   ];
 
   return fileNames.map((fileName) => `${basePath}picture/${folder}/${fileName}`);
@@ -189,14 +183,8 @@ function groupedMediaSources(folder) {
     const number = String(index).padStart(2, "0");
 
     groups.push([
-      `${basePath}picture/${folder}/${number}.jpg`,
-      `${basePath}picture/${folder}/${number}.jpeg`,
-      `${basePath}picture/${folder}/${number}.png`,
-      `${basePath}picture/${folder}/${number}.webp`,
-      `${basePath}picture/${folder}/${number}.avif`,
+      `${basePath}picture/${folder}/${number}.webp`, 
       `${basePath}picture/${folder}/${number}.mp4`,
-      `${basePath}picture/${folder}/${number}.webm`,
-      `${basePath}picture/${folder}/${number}.mov`,
     ]);
   }
 
@@ -406,42 +394,18 @@ function PreloadGalleryMedia() {
   useEffect(() => {
     const preloadImage = (src) => {
       const image = new Image();
+      image.decoding = "async";
       image.src = src;
     };
 
-    const preloadVideoMetadata = (src) => {
-      const video = document.createElement("video");
-      video.preload = "metadata";
-      video.src = src;
-    };
-
     const timeout = window.setTimeout(() => {
-      const previewSources = galleryItems.flatMap((item) => mediaSources(item.folder));
-
-      previewSources.forEach((src) => {
-        if (isVideo(src)) {
-          preloadVideoMetadata(src);
-        } else {
-          preloadImage(src);
-        }
-      });
-    }, 8000);
-
-    const deepTimeout = window.setTimeout(() => {
       galleryItems.forEach((item) => {
-        groupedMediaSources(item.folder).forEach((sources) => {
-          sources.forEach((src) => {
-            if (!isVideo(src)) {
-              preloadImage(src);
-            }
-          });
-        });
+        preloadImage(`${basePath}picture/${item.folder}/01.webp`);
       });
-    }, 18000);
+    }, 12000);
 
     return () => {
       window.clearTimeout(timeout);
-      window.clearTimeout(deepTimeout);
     };
   }, []);
 
@@ -878,6 +842,7 @@ function GalleryMedia({ item }) {
           muted
           loop
           playsInline
+          preload="metadata"
         />
       )}
 
@@ -886,6 +851,8 @@ function GalleryMedia({ item }) {
           src={currentSource}
           alt={item.title}
           onError={handleError}
+          loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover opacity-85 transition duration-500 hover:scale-105 hover:opacity-100"
         />
       )}
@@ -916,6 +883,7 @@ function GalleryModalMedia({ sources, title }) {
         controls
         muted
         playsInline
+        preload="metadata"
       />
     );
   }
@@ -925,6 +893,8 @@ function GalleryModalMedia({ sources, title }) {
       src={currentSource}
       alt={title}
       onError={handleError}
+      loading="lazy"
+      decoding="async"
       className="h-full min-h-[220px] w-full rounded-[1.5rem] object-cover"
     />
   );
