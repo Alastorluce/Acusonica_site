@@ -1229,7 +1229,7 @@ function Contact({ audioPulse }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.16 }}
-          className="mt-32 grid w-full gap-4 rounded-[2rem] border border-white/10 bg-black/45 p-8 text-left text-base leading-8 text-white/72 shadow-2xl backdrop-blur md:mt-70 md:grid-cols-2"
+          className="mt-32 grid w-full gap-4 rounded-[2rem] border border-white/10 bg-black/45 p-8 text-left text-base leading-8 text-white/72 shadow-2xl backdrop-blur md:mt-77 md:grid-cols-2"
         >
           <div>
             <p className="font-semibold text-white">CEO</p>
