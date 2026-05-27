@@ -490,7 +490,7 @@ function Hero() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(0,180,255,0.15),transparent_30%),linear-gradient(135deg,#000,#111_45%,#050505)]" />
 
       <motion.div
-        className="absolute inset-0 bg-no-repeat opacity-[0.36] mix-blend-screen [background-position:50%_13%] [background-size:min(74vw,360px)] md:opacity-[0.18] md:[background-position:68%_18%] md:[background-size:min(42vw,560px)]"
+        className="absolute inset-0 bg-no-repeat opacity-[0.36] mix-blend-screen [background-position:65%_13%] [background-size:min(62vw,300px)] md:opacity-[0.18] md:[background-position:68%_18%] md:[background-size:min(42vw,560px)]"
         style={{
           backgroundImage: `url("${logoBackground}")`,
         }}
