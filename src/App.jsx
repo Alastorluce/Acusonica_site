@@ -270,8 +270,10 @@ function AmbientAudio({ onPulseChange }) {
 
           const analyser = audioContext.createAnalyser();
 
-          analyser.fftSize = 2048;
-          analyser.smoothingTimeConstant = 0.62;
+          const isMobileAudio = window.matchMedia("(max-width: 768px)").matches;
+
+          analyser.fftSize = isMobileAudio ? 512 : 2048;
+          analyser.smoothingTimeConstant = isMobileAudio ? 0.78 : 0.62;
 
           analyserRef.current = analyser;
 
@@ -332,7 +334,11 @@ function AmbientAudio({ onPulseChange }) {
 
             onPulseChange(pulse);
 
-            animationRef.current = window.requestAnimationFrame(analyzeBass);
+            if (isMobileAudio) {
+              animationRef.current = window.setTimeout(analyzeBass, 80);
+            } else {
+              animationRef.current = window.requestAnimationFrame(analyzeBass);
+            }
           };
 
           analyzeBass();
@@ -369,7 +375,12 @@ function AmbientAudio({ onPulseChange }) {
       }
 
       if (animationRef.current) {
-        window.cancelAnimationFrame(animationRef.current);
+        if (window.matchMedia("(max-width: 768px)").matches) {
+          window.clearTimeout(animationRef.current);
+        } else {
+          window.cancelAnimationFrame(animationRef.current);
+        }
+
         animationRef.current = null;
       }
 
@@ -384,7 +395,7 @@ function AmbientAudio({ onPulseChange }) {
     <audio
       ref={audioRef}
       src={ambientAudio}
-      preload="auto"
+      preload="metadata"
       loop
       playsInline
     />
