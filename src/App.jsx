@@ -258,7 +258,7 @@ function Hero() {
         style={{
           backgroundImage: `url("${logoBackground}")`,
           backgroundSize: "min(58vw, 760px)",
-          backgroundPosition: "90% 38%",
+          backgroundPosition: "110% 28%",
           backgroundAttachment: "fixed",
         }}
       />
