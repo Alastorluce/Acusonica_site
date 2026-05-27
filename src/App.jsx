@@ -384,6 +384,17 @@ function AmbientAudio({ onPulseChange }) {
   };
 }, [onPulseChange]);
 
+  return (
+    <audio
+      ref={audioRef}
+      src={ambientAudio}
+      preload="auto"
+      loop
+      playsInline
+    />
+  );
+}
+
 function PreloadGalleryMedia() {
   useEffect(() => {
     const preloadImage = (src) => {
