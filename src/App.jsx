@@ -211,6 +211,7 @@ function AmbientAudio({ onPulseChange }) {
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
   const hasStartedRef = useRef(false);
+  const isStartingRef = useRef(false);
   const previousBassRef = useRef(0);
   const transientPeakRef = useRef(0);
 
@@ -218,48 +219,22 @@ function AmbientAudio({ onPulseChange }) {
     const startAudio = async () => {
       const audio = audioRef.current;
 
-      if (!audio || hasStartedRef.current) {
+      if (!audio || hasStartedRef.current || isStartingRef.current) {
         return;
       }
 
-      hasStartedRef.current = true;
+      isStartingRef.current = true;
 
       audio.volume = 0;
       audio.loop = true;
       audio.muted = false;
       audio.playsInline = true;
+      audio.currentTime = audio.currentTime || 0;
 
       try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-        if (!AudioContextClass) {
-          throw new Error("Web Audio API non supportata dal browser.");
-        }
-
-        const audioContext = new AudioContextClass();
-        audioContextRef.current = audioContext;
-
-        if (audioContext.state === "suspended") {
-          await audioContext.resume();
-        }
-
-        const analyser = audioContext.createAnalyser();
-
-        analyser.fftSize = 2048;
-        analyser.smoothingTimeConstant = 0.62;
-
-        analyserRef.current = analyser;
-
-        if (!sourceRef.current) {
-          const source = audioContext.createMediaElementSource(audio);
-
-          source.connect(analyser);
-          analyser.connect(audioContext.destination);
-
-          sourceRef.current = source;
-        }
-
         await audio.play();
+
+        hasStartedRef.current = true;
 
         const targetVolume = 0.22;
         const fadeDuration = 6000;
@@ -283,81 +258,110 @@ function AmbientAudio({ onPulseChange }) {
           }
         }, stepTime);
 
-        const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
 
-        const analyzeBass = () => {
-          analyser.getByteFrequencyData(frequencyData);
+        if (AudioContextClass) {
+          const audioContext = new AudioContextClass();
+          audioContextRef.current = audioContext;
 
-          const bassBins = frequencyData.slice(1, 14);
-          const bassWeights = [
-            3.6,
-            3.2,
-            2.8,
-            2.3,
-            1.8,
-            1.4,
-            1.1,
-            0.8,
-            0.6,
-            0.45,
-            0.3,
-            0.2,
-            0.15,
-          ];
+          if (audioContext.state === "suspended") {
+            await audioContext.resume();
+          }
 
-          const weightedBassSum = bassBins.reduce((sum, value, index) => {
-            return sum + value * bassWeights[index];
-          }, 0);
+          const analyser = audioContext.createAnalyser();
 
-          const weightSum = bassWeights.reduce((sum, value) => sum + value, 0);
-          const weightedBassAverage = weightedBassSum / weightSum;
+          analyser.fftSize = 2048;
+          analyser.smoothingTimeConstant = 0.62;
 
-          const bassLevel = weightedBassAverage / 255;
-          const bassRise = Math.max(0, bassLevel - previousBassRef.current);
+          analyserRef.current = analyser;
 
-          previousBassRef.current = previousBassRef.current * 0.58 + bassLevel * 0.42;
+          if (!sourceRef.current) {
+            const source = audioContext.createMediaElementSource(audio);
 
-          const transientAmount = Math.min(1, bassRise * 7);
+            source.connect(analyser);
+            analyser.connect(audioContext.destination);
 
-          transientPeakRef.current = Math.max(
-            transientAmount,
-            transientPeakRef.current * 0.9
-          );
+            sourceRef.current = source;
+          }
 
-          const bodyPulse = bassLevel * 0.12;
-          const transientPulse = transientPeakRef.current * 0.28;
+          const frequencyData = new Uint8Array(analyser.frequencyBinCount);
 
-          const pulse = 1 + bodyPulse + transientPulse;
+          const analyzeBass = () => {
+            analyser.getByteFrequencyData(frequencyData);
 
-          onPulseChange(pulse);
+            const bassBins = frequencyData.slice(1, 14);
+            const bassWeights = [
+              3.6,
+              3.2,
+              2.8,
+              2.3,
+              1.8,
+              1.4,
+              1.1,
+              0.8,
+              0.6,
+              0.45,
+              0.3,
+              0.2,
+              0.15,
+            ];
 
-          animationRef.current = window.requestAnimationFrame(analyzeBass);
-        };
+            const weightedBassSum = bassBins.reduce((sum, value, index) => {
+              return sum + value * bassWeights[index];
+            }, 0);
 
-        analyzeBass();
+            const weightSum = bassWeights.reduce((sum, value) => sum + value, 0);
+            const weightedBassAverage = weightedBassSum / weightSum;
 
-        window.removeEventListener("click", startAudio);
-        window.removeEventListener("pointerdown", startAudio);
-        window.removeEventListener("touchstart", startAudio);
-        window.removeEventListener("keydown", startAudio);
+            const bassLevel = weightedBassAverage / 255;
+            const bassRise = Math.max(0, bassLevel - previousBassRef.current);
+
+            previousBassRef.current = previousBassRef.current * 0.58 + bassLevel * 0.42;
+
+            const transientAmount = Math.min(1, bassRise * 7);
+
+            transientPeakRef.current = Math.max(
+              transientAmount,
+              transientPeakRef.current * 0.9
+            );
+
+            const bodyPulse = bassLevel * 0.12;
+            const transientPulse = transientPeakRef.current * 0.28;
+
+            const pulse = 1 + bodyPulse + transientPulse;
+
+            onPulseChange(pulse);
+
+            animationRef.current = window.requestAnimationFrame(analyzeBass);
+          };
+
+          analyzeBass();
+        }
+
+        document.removeEventListener("click", startAudio);
+        document.removeEventListener("pointerup", startAudio);
+        document.removeEventListener("touchend", startAudio);
+        document.removeEventListener("keydown", startAudio);
       } catch (error) {
         hasStartedRef.current = false;
         previousBassRef.current = 0;
         transientPeakRef.current = 0;
         onPulseChange(1);
+      } finally {
+        isStartingRef.current = false;
       }
     };
 
-    window.addEventListener("click", startAudio);
-    window.addEventListener("pointerdown", startAudio);
-    window.addEventListener("touchstart", startAudio);
-    window.addEventListener("keydown", startAudio);
+    document.addEventListener("click", startAudio);
+    document.addEventListener("pointerup", startAudio);
+    document.addEventListener("touchend", startAudio);
+    document.addEventListener("keydown", startAudio);
 
     return () => {
-      window.removeEventListener("click", startAudio);
-      window.removeEventListener("pointerdown", startAudio);
-      window.removeEventListener("touchstart", startAudio);
-      window.removeEventListener("keydown", startAudio);
+      document.removeEventListener("click", startAudio);
+      document.removeEventListener("pointerup", startAudio);
+      document.removeEventListener("touchend", startAudio);
+      document.removeEventListener("keydown", startAudio);
 
       if (fadeIntervalRef.current) {
         window.clearInterval(fadeIntervalRef.current);
@@ -382,6 +386,7 @@ function AmbientAudio({ onPulseChange }) {
       src={ambientAudio}
       preload="auto"
       loop
+      playsInline
     />
   );
 }
