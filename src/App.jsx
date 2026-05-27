@@ -257,8 +257,8 @@ function Hero() {
         className="absolute inset-0 bg-no-repeat opacity-10 mix-blend-screen"
         style={{
           backgroundImage: `url("${logoBackground}")`,
-          backgroundSize: "min(42vw, 560px)",
-          backgroundPosition: "72% 48%",
+          backgroundSize: "min(58vw, 760px)",
+          backgroundPosition: "90% 38%",
           backgroundAttachment: "fixed",
         }}
       />
