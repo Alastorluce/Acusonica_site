@@ -456,7 +456,7 @@ function Header() {
           <span className="grid h-11 w-11 place-items-center rounded-2xl bg-white p-2 shadow-lg shadow-cyan-500/10">
             <img src={logoIcon} alt="Acusonica" className="h-full w-full object-contain" />
           </span>
-          <span className="max-w-[250px] text-[10px] font-semibold leading-4 tracking-[0.18em] uppercase sm:max-w-none sm:text-xs md:text-sm md:tracking-[0.32em]">
+          <span className="text-[11px] font-semibold leading-4 tracking-[0.22em] uppercase sm:text-xs md:text-sm md:tracking-[0.32em]">
             <span className="hidden sm:inline">{companyData.name}</span>
             <span className="inline sm:hidden">ACUSONICA</span>
           </span>
@@ -490,15 +490,15 @@ function Hero() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(0,180,255,0.15),transparent_30%),linear-gradient(135deg,#000,#111_45%,#050505)]" />
 
       <motion.div
-        className="absolute inset-0 bg-no-repeat opacity-[0.34] mix-blend-screen [background-position:82%_15%] [background-size:min(78vw,420px)] md:opacity-[0.18] md:[background-position:68%_18%] md:[background-size:min(42vw,560px)]"
+        className="absolute inset-0 bg-no-repeat opacity-[0.36] mix-blend-screen [background-position:50%_13%] [background-size:min(74vw,360px)] md:opacity-[0.18] md:[background-position:68%_18%] md:[background-size:min(42vw,560px)]"
         style={{
           backgroundImage: `url("${logoBackground}")`,
         }}
         animate={{
           scale: [1, 1.055, 1.018, 1.075, 1.025, 1.06, 1],
-          x: [0, -10, 7, 16, -8, 11, 0],
-          y: [0, -6, 4, -10, 7, -4, 0],
-          rotate: [0, -0.25, 0.15, 0.35, -0.2, 0.1, 0],
+          x: [0, -8, 6, 10, -6, 8, 0],
+          y: [0, -5, 3, -8, 5, -3, 0],
+          rotate: [0, -0.2, 0.12, 0.28, -0.18, 0.1, 0],
         }}
         transition={{
           duration: 18,
