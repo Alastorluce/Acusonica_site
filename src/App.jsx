@@ -413,8 +413,12 @@ function HorizontalShowcase() {
 }
 
 function CatalogSection() {
+  const GOOGLE_SCRIPT_URL =
+    "https://script.google.com/macros/s/AKfycbx1D7AWwH6PVRRV7T4qpqKZzCu7mOJLg5-kXuM8eAae_RnlkezGjpOv-WXzBQb-A4Hhjg/exec";
+
   const allItems = Object.values(catalogItems).flat();
   const [selected, setSelected] = useState([]);
+  const [isSendingCatalog, setIsSendingCatalog] = useState(false);
 
   const toggleItem = (item) => {
     setSelected((current) =>
@@ -422,25 +426,55 @@ function CatalogSection() {
     );
   };
 
-  const requestText = useMemo(() => {
-    const list = selected.length
-      ? selected.map((item) => `• ${item}`).join("\n")
-      : "• Da definire";
+  const selectedByCategory = useMemo(() => {
+    const result = {};
 
-    return encodeURIComponent(
-      `Richiesta preventivo Acusonica
+    Object.entries(catalogItems).forEach(([category, items]) => {
+      const categoryItems = items.filter((item) => selected.includes(item));
 
-Attrezzature selezionate:
-${list}
+      if (categoryItems.length > 0) {
+        result[category] = categoryItems;
+      }
+    });
 
-Dati evento:
-Data:
-Luogo:
-Tipo evento:
-Numero persone:
-Note tecniche:`
-    );
+    return result;
   }, [selected]);
+
+  const sendCatalogRequest = async () => {
+    if (isSendingCatalog) {
+      return;
+    }
+
+    if (selected.length === 0) {
+      alert("Seleziona almeno un elemento dal catalogo.");
+      return;
+    }
+
+    try {
+      setIsSendingCatalog(true);
+
+      await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify({
+          tipoModulo: "catalogo",
+          catalogo: selectedByCategory,
+        }),
+      });
+
+      alert(
+        "Richiesta catalogo inviata correttamente. Acusonica ti risponderà appena possibile."
+      );
+
+      setSelected([]);
+    } catch (error) {
+      alert(
+        "Errore durante l’invio. Riprova oppure scrivi direttamente a acusonica@gmail.com."
+      );
+    } finally {
+      setIsSendingCatalog(false);
+    }
+  };
 
   return (
     <section id="catalogo" className="bg-black/82 px-6 py-28 text-white">
@@ -454,7 +488,7 @@ Note tecniche:`
           </div>
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 text-white/70 backdrop-blur">
             <p className="text-lg leading-8">
-              Spunta gli elementi utili all’evento. La richiesta viene preparata in modo ordinato e inviata via email.
+              Spunta gli elementi utili all’evento. La richiesta viene preparata in modo ordinato e inviata direttamente ad Acusonica.
             </p>
           </div>
         </div>
@@ -499,13 +533,15 @@ Note tecniche:`
           <p className="text-lg text-white/70">
             Elementi selezionati: <span className="font-bold text-white">{selected.length}</span> su {allItems.length}
           </p>
-          <a
-            href={`mailto:${companyData.email}?subject=Richiesta preventivo Acusonica&body=${requestText}`}
-            className="inline-flex items-center justify-center gap-3 rounded-full bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:scale-[1.03]"
+          <button
+            type="button"
+            onClick={sendCatalogRequest}
+            disabled={isSendingCatalog}
+            className="inline-flex items-center justify-center gap-3 rounded-full bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:scale-[1.03] disabled:cursor-wait disabled:opacity-60"
           >
-            Crea richiesta
+            {isSendingCatalog ? "Invio in corso" : "Crea richiesta"}
             <Mail size={18} />
-          </a>
+          </button>
         </div>
       </div>
     </section>
