@@ -19,7 +19,7 @@ const basePath = import.meta.env.BASE_URL;
 
 const logoBackground = `${basePath}logo/acusonica logo sito.png`;
 const logoIcon = `${basePath}acusonica icona.png`;
-const ambientAudio = `${basePath}audio/ambience.flac`;
+const ambientAudio = `${basePath}audio/ambience.mp3`;
 
 const companyData = {
   name: "ACUSONICA PROFESSIONAL SOUND SOLUTION",
@@ -206,27 +206,24 @@ function groupedMediaSources(folder) {
 function AmbientAudio() {
   const audioRef = useRef(null);
   const fadeIntervalRef = useRef(null);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const hasStartedRef = useRef(false);
 
   useEffect(() => {
-    if (isAudioEnabled) {
-      return undefined;
-    }
-
     const startAudio = async () => {
       const audio = audioRef.current;
 
-      if (!audio || isAudioEnabled) {
+      if (!audio || hasStartedRef.current) {
         return;
       }
 
+      hasStartedRef.current = true;
+
       audio.volume = 0;
       audio.loop = true;
+      audio.muted = false;
 
       try {
         await audio.play();
-
-        setIsAudioEnabled(true);
 
         const targetVolume = 0.22;
         const fadeDuration = 6000;
@@ -249,16 +246,25 @@ function AmbientAudio() {
             fadeIntervalRef.current = null;
           }
         }, stepTime);
+
+        window.removeEventListener("click", startAudio);
+        window.removeEventListener("pointerdown", startAudio);
+        window.removeEventListener("touchstart", startAudio);
+        window.removeEventListener("keydown", startAudio);
       } catch (error) {
-        setIsAudioEnabled(false);
+        hasStartedRef.current = false;
       }
     };
 
+    window.addEventListener("click", startAudio);
     window.addEventListener("pointerdown", startAudio);
+    window.addEventListener("touchstart", startAudio);
     window.addEventListener("keydown", startAudio);
 
     return () => {
+      window.removeEventListener("click", startAudio);
       window.removeEventListener("pointerdown", startAudio);
+      window.removeEventListener("touchstart", startAudio);
       window.removeEventListener("keydown", startAudio);
 
       if (fadeIntervalRef.current) {
@@ -266,9 +272,15 @@ function AmbientAudio() {
         fadeIntervalRef.current = null;
       }
     };
-  }, [isAudioEnabled]);
+  }, []);
 
-  return <audio ref={audioRef} src={ambientAudio} preload="auto" />;
+  return (
+    <audio
+      ref={audioRef}
+      src={ambientAudio}
+      preload="auto"
+    />
+  );
 }
 
 function ProgressBar() {
