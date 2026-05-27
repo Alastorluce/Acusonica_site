@@ -654,6 +654,19 @@ function CatalogSection() {
   const [selected, setSelected] = useState([]);
   const [isSendingCatalog, setIsSendingCatalog] = useState(false);
 
+  const [catalogContact, setCatalogContact] = useState({
+    nome: "",
+    telefono: "",
+    email: "",
+  });
+
+  const updateCatalogContact = (field, value) => {
+    setCatalogContact((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
+
   const toggleItem = (item) => {
     setSelected((current) =>
       current.includes(item) ? current.filter((value) => value !== item) : [...current, item]
@@ -684,6 +697,11 @@ function CatalogSection() {
       return;
     }
 
+    if (!catalogContact.email.trim()) {
+      alert("Inserisci almeno l’email di contatto.");
+      return;
+    }
+
     try {
       setIsSendingCatalog(true);
 
@@ -692,6 +710,9 @@ function CatalogSection() {
         mode: "no-cors",
         body: JSON.stringify({
           tipoModulo: "catalogo",
+          nome: catalogContact.nome,
+          telefono: catalogContact.telefono,
+          email: catalogContact.email,
           catalogo: selectedByCategory,
         }),
       });
@@ -701,6 +722,11 @@ function CatalogSection() {
       );
 
       setSelected([]);
+      setCatalogContact({
+        nome: "",
+        telefono: "",
+        email: "",
+      });
     } catch (error) {
       alert(
         "Errore durante l’invio. Riprova oppure scrivi direttamente a acusonica@gmail.com."
@@ -763,19 +789,50 @@ function CatalogSection() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col gap-4 rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur md:flex-row md:items-center md:justify-between">
-          <p className="text-lg text-white/70">
-            Elementi selezionati: <span className="font-bold text-white">{selected.length}</span> su {allItems.length}
-          </p>
-          <button
-            type="button"
-            onClick={sendCatalogRequest}
-            disabled={isSendingCatalog}
-            className="inline-flex items-center justify-center gap-3 rounded-full bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:scale-[1.03] disabled:cursor-wait disabled:opacity-60"
-          >
-            {isSendingCatalog ? "Invio in corso" : "Crea richiesta"}
-            <Mail size={18} />
-          </button>
+        <div className="mt-10 rounded-[2rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur">
+          <div className="grid gap-5 md:grid-cols-3">
+            <input
+              className="rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none placeholder:text-white/35"
+              type="text"
+              autoComplete="name"
+              value={catalogContact.nome}
+              onChange={(event) => updateCatalogContact("nome", event.target.value)}
+              placeholder="Nome"
+            />
+
+            <input
+              className="rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none placeholder:text-white/35"
+              type="tel"
+              autoComplete="tel"
+              value={catalogContact.telefono}
+              onChange={(event) => updateCatalogContact("telefono", event.target.value)}
+              placeholder="Telefono"
+            />
+
+            <input
+              className="rounded-2xl border border-white/10 bg-black/30 px-5 py-4 text-white outline-none placeholder:text-white/35"
+              type="email"
+              autoComplete="email"
+              value={catalogContact.email}
+              onChange={(event) => updateCatalogContact("email", event.target.value)}
+              placeholder="Email di contatto"
+            />
+          </div>
+
+          <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <p className="text-lg text-white/70">
+              Elementi selezionati: <span className="font-bold text-white">{selected.length}</span> su {allItems.length}
+            </p>
+            <button
+              type="button"
+              onClick={sendCatalogRequest}
+              disabled={isSendingCatalog}
+              className="inline-flex items-center justify-center gap-3 rounded-full bg-white px-6 py-4 text-sm font-bold uppercase tracking-[0.18em] text-black transition hover:scale-[1.03] disabled:cursor-wait disabled:opacity-60"
+            >
+              {isSendingCatalog ? "Invio in corso" : "Crea richiesta"}
+              <Mail size={18} />
+            </button>
+          </div>
         </div>
       </div>
     </section>
