@@ -488,24 +488,26 @@ function Hero() {
   return (
     <section id="home" className="relative min-h-screen overflow-hidden bg-black text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(0,180,255,0.15),transparent_30%),linear-gradient(135deg,#000,#111_45%,#050505)]" />
+
       <motion.div
-        className="absolute inset-0 bg-no-repeat opacity-[0.34] mix-blend-screen md:opacity-[0.18]"
+        className="absolute inset-0 bg-no-repeat opacity-[0.34] mix-blend-screen [background-position:82%_15%] [background-size:min(78vw,420px)] md:opacity-[0.18] md:[background-position:68%_18%] md:[background-size:min(42vw,560px)]"
         style={{
           backgroundImage: `url("${logoBackground}")`,
-          backgroundSize: "min(78vw, 420px)",
-          backgroundPosition: "86% 15%",
         }}
         animate={{
-          scale: [1, 1.08, 1],
-          x: [0, 10, 0],
-          y: [0, -8, 0],
+          scale: [1, 1.055, 1.018, 1.075, 1.025, 1.06, 1],
+          x: [0, -10, 7, 16, -8, 11, 0],
+          y: [0, -6, 4, -10, 7, -4, 0],
+          rotate: [0, -0.25, 0.15, 0.35, -0.2, 0.1, 0],
         }}
         transition={{
-          duration: 8,
+          duration: 18,
           repeat: Infinity,
           ease: "easeInOut",
+          times: [0, 0.16, 0.34, 0.52, 0.68, 0.84, 1],
         }}
       />
+
       <div className="absolute inset-0 bg-black/35" />
       <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-black to-transparent" />
 
