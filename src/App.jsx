@@ -203,9 +203,13 @@ function groupedMediaSources(folder) {
   return groups;
 }
 
-function AmbientAudio() {
+function AmbientAudio({ onPulseChange }) {
   const audioRef = useRef(null);
   const fadeIntervalRef = useRef(null);
+  const animationRef = useRef(null);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
+  const sourceRef = useRef(null);
   const hasStartedRef = useRef(false);
 
   useEffect(() => {
@@ -221,8 +225,38 @@ function AmbientAudio() {
       audio.volume = 0;
       audio.loop = true;
       audio.muted = false;
+      audio.playsInline = true;
 
       try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+          throw new Error("Web Audio API non supportata dal browser.");
+        }
+
+        const audioContext = new AudioContextClass();
+        audioContextRef.current = audioContext;
+
+        if (audioContext.state === "suspended") {
+          await audioContext.resume();
+        }
+
+        const analyser = audioContext.createAnalyser();
+
+        analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.82;
+
+        analyserRef.current = analyser;
+
+        if (!sourceRef.current) {
+          const source = audioContext.createMediaElementSource(audio);
+
+          source.connect(analyser);
+          analyser.connect(audioContext.destination);
+
+          sourceRef.current = source;
+        }
+
         await audio.play();
 
         const targetVolume = 0.22;
@@ -247,12 +281,32 @@ function AmbientAudio() {
           }
         }, stepTime);
 
+        const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+
+        const analyzeBass = () => {
+          analyser.getByteFrequencyData(frequencyData);
+
+          const bassBins = frequencyData.slice(1, 8);
+          const bassAverage =
+            bassBins.reduce((sum, value) => sum + value, 0) / bassBins.length;
+
+          const normalizedBass = Math.min(1, bassAverage / 180);
+          const pulse = 1 + normalizedBass * 0.12;
+
+          onPulseChange(pulse);
+
+          animationRef.current = window.requestAnimationFrame(analyzeBass);
+        };
+
+        analyzeBass();
+
         window.removeEventListener("click", startAudio);
         window.removeEventListener("pointerdown", startAudio);
         window.removeEventListener("touchstart", startAudio);
         window.removeEventListener("keydown", startAudio);
       } catch (error) {
         hasStartedRef.current = false;
+        onPulseChange(1);
       }
     };
 
@@ -271,14 +325,25 @@ function AmbientAudio() {
         window.clearInterval(fadeIntervalRef.current);
         fadeIntervalRef.current = null;
       }
+
+      if (animationRef.current) {
+        window.cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
     };
-  }, []);
+  }, [onPulseChange]);
 
   return (
     <audio
       ref={audioRef}
       src={ambientAudio}
       preload="auto"
+      loop
     />
   );
 }
@@ -978,15 +1043,23 @@ function EstimateSection() {
   );
 }
 
-function Contact() {
+function Contact({ audioPulse }) {
   return (
     <section id="contact" className="relative min-h-screen overflow-hidden bg-black/70 px-6 py-28 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_32%,rgba(255,255,255,0.18),transparent_30%)]" />
-      <div
-        className="absolute inset-0 bg-center bg-no-repeat opacity-20 mix-blend-screen"
+      <motion.div
+        className="absolute inset-0 bg-center bg-no-repeat opacity-25 mix-blend-screen"
         style={{
           backgroundImage: `url("${logoBackground}")`,
           backgroundSize: "min(76vw, 920px)",
+        }}
+        animate={{
+          scale: audioPulse,
+          opacity: Math.min(0.36, 0.22 + (audioPulse - 1) * 1.2),
+        }}
+        transition={{
+          duration: 0.08,
+          ease: "easeOut",
         }}
       />
       <div className="relative mx-auto flex min-h-[76vh] max-w-5xl flex-col items-center justify-start pt-12 text-center">
@@ -1033,6 +1106,8 @@ function Contact() {
 }
 
 export default function ModernScrollWebsite() {
+  const [audioPulse, setAudioPulse] = useState(1);
+
   return (
     <main
       className="min-h-screen scroll-smooth bg-black bg-fixed bg-center bg-no-repeat font-sans"
@@ -1042,7 +1117,7 @@ export default function ModernScrollWebsite() {
     >
       <ProgressBar />
       <Header />
-      <AmbientAudio />
+      <AmbientAudio onPulseChange={setAudioPulse} />
       <Hero />
       {sections.map((item, index) => (
         <VerticalSection key={item.title} item={item} index={index} />
@@ -1052,7 +1127,7 @@ export default function ModernScrollWebsite() {
       <GallerySection />
       <CadSection />
       <EstimateSection />
-      <Contact />
+      <Contact audioPulse={audioPulse} />
     </main>
   );
 }
