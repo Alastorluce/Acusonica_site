@@ -1,0 +1,37 @@
+export const catalogItems = {
+  Audio: [
+    "Impianto audio principale",
+    "Subwoofer",
+    "Monitor da palco",
+    "Mixer digitale",
+    "Microfoni cablati",
+    "Radiomicrofoni",
+    "Aste microfoniche",
+    "DI box",
+  ],
+  Video: [
+    "Schermi",
+    "Proiettori",
+    "Regia video",
+    "Monitor di servizio",
+    "Distribuzione segnale",
+    "Cavi HDMI e SDI",
+  ],
+  Luci: [
+    "Fari LED",
+    "Teste mobili",
+    "Barre LED",
+    "Wash",
+    "Beam",
+    "Centralina luci",
+    "Dimmer e controllo DMX",
+  ],
+  Strutture: [
+    "Americane",
+    "Stativi",
+    "Supporti",
+    "Pedane",
+    "Cablaggi di potenza",
+    "Quadri elettrici",
+  ],
+};
