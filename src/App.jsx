@@ -1440,8 +1440,8 @@ function Contact() {
             filter: `blur(${Math.max(0.6, 1.8 - (audioPulse - 1) * 2.6)}px)`,
           }}
           transition={{
-            duration: 0.14,
-            ease: "easeOut",
+            duration: 0.08,
+            ease: "linear",
           }}
         />
       </div>
