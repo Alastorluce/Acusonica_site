@@ -105,3 +105,7 @@ public/picture/**/*.tmp.webp
 *.tmp
 *.temp
 ~$*
+node_modules
+dist
+dist-ssr
+.vscode
