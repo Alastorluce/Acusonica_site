@@ -191,12 +191,15 @@ function groupedMediaSources(folder) {
   return groups;
 }
 
-function AmbientAudio({ onPulseChange }) {
+function AmbientAudio() {
   const audioRef = useRef(null);
   const fadeIntervalRef = useRef(null);
   const animationRef = useRef(null);
   const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
   const sourceRef = useRef(null);
+  const blobUrlRef = useRef(null);
+  const bufferControllerRef = useRef(null);
   const hasStartedRef = useRef(false);
   const isStartingRef = useRef(false);
   const previousBassRef = useRef(0);
@@ -204,6 +207,15 @@ function AmbientAudio({ onPulseChange }) {
 
   useEffect(() => {
     const isMobileAudio = window.matchMedia("(max-width: 768px)").matches;
+    const targetVolume = isMobileAudio ? 0.2 : 0.22;
+
+    const emitPulse = (pulse) => {
+      window.dispatchEvent(
+        new CustomEvent("acusonica-audio-pulse", {
+          detail: pulse,
+        })
+      );
+    };
 
     const clearAnimation = () => {
       if (!animationRef.current) {
@@ -227,13 +239,204 @@ function AmbientAudio({ onPulseChange }) {
     };
 
     const removeStartListeners = () => {
-      document.removeEventListener("pointerup", startAudio);
-      document.removeEventListener("keydown", startAudio);
+      document.removeEventListener("pointerdown", startAudio, true);
+      document.removeEventListener("keydown", startAudio, true);
     };
 
     const addStartListeners = () => {
-      document.addEventListener("pointerup", startAudio, { passive: true });
-      document.addEventListener("keydown", startAudio);
+      document.addEventListener("pointerdown", startAudio, {
+        capture: true,
+        passive: true,
+      });
+      document.addEventListener("keydown", startAudio, true);
+    };
+
+    const injectAudioPreload = () => {
+      const existing = document.querySelector('link[data-acusonica-audio="true"]');
+
+      if (existing) {
+        return;
+      }
+
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "audio";
+      link.href = ambientAudio;
+      link.type = "audio/mpeg";
+      link.setAttribute("data-acusonica-audio", "true");
+      document.head.appendChild(link);
+    };
+
+    const warmAudioElement = () => {
+      const audio = audioRef.current;
+
+      if (!audio) {
+        return;
+      }
+
+      audio.loop = true;
+      audio.muted = false;
+      audio.playsInline = true;
+      audio.crossOrigin = "anonymous";
+      audio.preload = "auto";
+      audio.src = ambientAudio;
+      audio.load();
+    };
+
+    const warmAudioBuffer = async () => {
+      if (!window.fetch || bufferControllerRef.current) {
+        return;
+      }
+
+      const controller = new AbortController();
+      bufferControllerRef.current = controller;
+
+      try {
+        const response = await fetch(ambientAudio, {
+          cache: "force-cache",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const blob = await response.blob();
+
+        if (!blob.size || hasStartedRef.current) {
+          return;
+        }
+
+        const audio = audioRef.current;
+
+        if (!audio) {
+          return;
+        }
+
+        blobUrlRef.current = URL.createObjectURL(blob);
+        audio.src = blobUrlRef.current;
+        audio.preload = "auto";
+        audio.load();
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+      }
+    };
+
+    const startAnalyzer = async (audio) => {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+      if (!AudioContextClass) {
+        return;
+      }
+
+      const audioContext = audioContextRef.current || new AudioContextClass({
+        latencyHint: isMobileAudio ? "interactive" : "playback",
+      });
+
+      audioContextRef.current = audioContext;
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+
+      if (!sourceRef.current) {
+        sourceRef.current = audioContext.createMediaElementSource(audio);
+      }
+
+      if (!analyserRef.current) {
+        const analyser = audioContext.createAnalyser();
+        analyser.fftSize = isMobileAudio ? 2048 : 2048;
+        analyser.smoothingTimeConstant = isMobileAudio ? 0.68 : 0.62;
+
+        sourceRef.current.connect(analyser);
+        analyser.connect(audioContext.destination);
+        analyserRef.current = analyser;
+      }
+
+      const analyser = analyserRef.current;
+      const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+
+      const analyzeBass = () => {
+        analyser.getByteFrequencyData(frequencyData);
+
+        const bassBins = frequencyData.slice(1, 14);
+        const bassWeights = [
+          3.6,
+          3.2,
+          2.8,
+          2.3,
+          1.8,
+          1.4,
+          1.1,
+          0.8,
+          0.6,
+          0.45,
+          0.3,
+          0.2,
+          0.15,
+        ];
+
+        const weightedBassSum = bassBins.reduce((sum, value, index) => {
+          return sum + value * bassWeights[index];
+        }, 0);
+
+        const weightSum = bassWeights.reduce((sum, value) => sum + value, 0);
+        const weightedBassAverage = weightedBassSum / weightSum;
+        const bassLevel = weightedBassAverage / 255;
+        const bassRise = Math.max(0, bassLevel - previousBassRef.current);
+
+        previousBassRef.current = previousBassRef.current * 0.64 + bassLevel * 0.36;
+
+        const transientAmount = Math.min(1, bassRise * 6.2);
+
+        transientPeakRef.current = Math.max(
+          transientAmount,
+          transientPeakRef.current * 0.88
+        );
+
+        const bodyPulse = bassLevel * 0.1;
+        const transientPulse = transientPeakRef.current * 0.24;
+        const pulse = 1 + bodyPulse + transientPulse;
+
+        emitPulse(pulse);
+
+        if (document.hidden) {
+          animationRef.current = window.setTimeout(analyzeBass, 250);
+          return;
+        }
+
+        if (isMobileAudio) {
+          animationRef.current = window.setTimeout(analyzeBass, 70);
+        } else {
+          animationRef.current = window.requestAnimationFrame(analyzeBass);
+        }
+      };
+
+      clearAnimation();
+      analyzeBass();
+    };
+
+    const startFade = (audio) => {
+      const fadeDuration = isMobileAudio ? 420 : 900;
+      const steps = isMobileAudio ? 14 : 30;
+      const stepTime = fadeDuration / steps;
+      const startVolume = Number.isFinite(audio.volume) ? audio.volume : 0;
+      const volumeStep = (targetVolume - startVolume) / steps;
+      let currentStep = 0;
+
+      clearFade();
+
+      fadeIntervalRef.current = window.setInterval(() => {
+        currentStep += 1;
+        audio.volume = Math.min(targetVolume, startVolume + volumeStep * currentStep);
+
+        if (currentStep >= steps) {
+          audio.volume = targetVolume;
+          clearFade();
+        }
+      }, stepTime);
     };
 
     const startAudio = async () => {
@@ -251,133 +454,78 @@ function AmbientAudio({ onPulseChange }) {
       audio.muted = false;
       audio.playsInline = true;
 
+      if (!audio.src) {
+        audio.src = blobUrlRef.current || ambientAudio;
+        audio.load();
+      }
+
       try {
-        await audio.play();
+        const playPromise = audio.play();
+
+        if (playPromise && typeof playPromise.then === "function") {
+          await playPromise;
+        }
+
         hasStartedRef.current = true;
+        startFade(audio);
       } catch (error) {
         isStartingRef.current = false;
         addStartListeners();
         return;
       }
 
-      const targetVolume = isMobileAudio ? 0.18 : 0.22;
-      const fadeDuration = isMobileAudio ? 2500 : 6000;
-      const steps = isMobileAudio ? 40 : 80;
-      const stepTime = fadeDuration / steps;
-      const volumeStep = targetVolume / steps;
-      let currentStep = 0;
-
-      clearFade();
-
-      fadeIntervalRef.current = window.setInterval(() => {
-        currentStep += 1;
-        audio.volume = Math.min(targetVolume, volumeStep * currentStep);
-
-        if (currentStep >= steps) {
-          clearFade();
-        }
-      }, stepTime);
-
       try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-        if (!AudioContextClass) {
-          return;
-        }
-
-        const audioContext = audioContextRef.current || new AudioContextClass();
-        audioContextRef.current = audioContext;
-
-        if (audioContext.state === "suspended") {
-          await audioContext.resume();
-        }
-
-        const analyser = audioContext.createAnalyser();
-        analyser.fftSize = isMobileAudio ? 1024 : 2048;
-        analyser.smoothingTimeConstant = isMobileAudio ? 0.74 : 0.62;
-
-        if (!sourceRef.current) {
-          sourceRef.current = audioContext.createMediaElementSource(audio);
-          sourceRef.current.connect(analyser);
-        } else {
-          sourceRef.current.connect(analyser);
-        }
-
-        analyser.connect(audioContext.destination);
-
-        const frequencyData = new Uint8Array(analyser.frequencyBinCount);
-
-        const analyzeBass = () => {
-          analyser.getByteFrequencyData(frequencyData);
-
-          const bassBins = isMobileAudio
-            ? frequencyData.slice(1, 12)
-            : frequencyData.slice(1, 14);
-
-          const bassWeights = isMobileAudio
-            ? [3.8, 3.3, 2.8, 2.2, 1.7, 1.3, 1.0, 0.75, 0.55, 0.35, 0.2]
-            : [3.6, 3.2, 2.8, 2.3, 1.8, 1.4, 1.1, 0.8, 0.6, 0.45, 0.3, 0.2, 0.15];
-
-          const weightedBassSum = bassBins.reduce((sum, value, index) => {
-            return sum + value * bassWeights[index];
-          }, 0);
-
-          const weightSum = bassWeights.reduce((sum, value) => sum + value, 0);
-          const weightedBassAverage = weightedBassSum / weightSum;
-          const bassLevel = weightedBassAverage / 255;
-          const bassRise = Math.max(0, bassLevel - previousBassRef.current);
-
-          previousBassRef.current = previousBassRef.current * 0.62 + bassLevel * 0.38;
-
-          const transientAmount = Math.min(1, bassRise * 6);
-
-          transientPeakRef.current = Math.max(
-            transientAmount,
-            transientPeakRef.current * 0.88
-          );
-
-          const bodyPulse = bassLevel * 0.1;
-          const transientPulse = transientPeakRef.current * 0.24;
-          const pulse = 1 + bodyPulse + transientPulse;
-
-          onPulseChange(pulse);
-
-          if (isMobileAudio) {
-            animationRef.current = window.setTimeout(analyzeBass, 60);
-          } else {
-            animationRef.current = window.requestAnimationFrame(analyzeBass);
-          }
-        };
-
-        clearAnimation();
-        analyzeBass();
+        await startAnalyzer(audio);
       } catch (error) {
         previousBassRef.current = 0;
         transientPeakRef.current = 0;
-        onPulseChange(1);
+        emitPulse(1);
       } finally {
         isStartingRef.current = false;
       }
     };
 
+    injectAudioPreload();
+    warmAudioElement();
+    warmAudioBuffer();
     addStartListeners();
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden || !audioRef.current || !hasStartedRef.current) {
+        return;
+      }
+
+      emitPulse(1);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       removeStartListeners();
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       clearFade();
       clearAnimation();
+
+      if (bufferControllerRef.current) {
+        bufferControllerRef.current.abort();
+        bufferControllerRef.current = null;
+      }
 
       if (audioContextRef.current) {
         audioContextRef.current.close();
         audioContextRef.current = null;
       }
+
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
     };
-  }, [onPulseChange]);
+  }, []);
 
   return (
     <audio
       ref={audioRef}
-      src={ambientAudio}
       preload="auto"
       loop
       playsInline
@@ -1172,7 +1320,25 @@ function EstimateSection() {
   );
 }
 
-function Contact({ audioPulse }) {
+function Contact() {
+  const [audioPulse, setAudioPulse] = useState(1);
+
+  useEffect(() => {
+    const handlePulse = (event) => {
+      const value = Number(event.detail);
+
+      if (Number.isFinite(value)) {
+        setAudioPulse(value);
+      }
+    };
+
+    window.addEventListener("acusonica-audio-pulse", handlePulse);
+
+    return () => {
+      window.removeEventListener("acusonica-audio-pulse", handlePulse);
+    };
+  }, []);
+
   return (
     <section id="contact" className="relative min-h-screen overflow-hidden bg-black/70 px-6 py-28 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_32%,rgba(255,255,255,0.18),transparent_30%)]" />
@@ -1242,8 +1408,6 @@ function Contact({ audioPulse }) {
 }
 
 export default function ModernScrollWebsite() {
-  const [audioPulse, setAudioPulse] = useState(1);
-
   return (
     <main
       className="min-h-screen scroll-smooth bg-black bg-fixed bg-center bg-no-repeat font-sans"
@@ -1254,7 +1418,7 @@ export default function ModernScrollWebsite() {
       <ProgressBar />
       <Header />
       <PreloadGalleryMedia />
-      <AmbientAudio onPulseChange={setAudioPulse} />
+      <AmbientAudio />
       <Hero />
       {sections.map((item, index) => (
         <VerticalSection key={item.title} item={item} index={index} />
@@ -1264,7 +1428,7 @@ export default function ModernScrollWebsite() {
       <GallerySection />
       <CadSection />
       <EstimateSection />
-      <Contact audioPulse={audioPulse} />
+      <Contact />
     </main>
   );
 }
