@@ -1,4 +1,3 @@
-```gitignore
 # LOG E FILE TEMPORANEI DI PACCHETTI
 
 logs/
@@ -9,11 +8,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-
 # DIPENDENZE NODE
 
 node_modules/
-
 
 # BUILD LOCALI E OUTPUT DI COMPILAZIONE
 
@@ -21,19 +18,16 @@ dist/
 dist-ssr/
 build/
 
-
 # VARIABILI AMBIENTE E FILE LOCALI
 
 .env
 .env.local
 *.local
 
-
 # FILE DI SISTEMA
 
 .DS_Store
 Thumbs.db
-
 
 # CONFIGURAZIONI EDITOR E IDE
 
@@ -46,12 +40,10 @@ Thumbs.db
 *.sln
 *.sw?
 
-
 # CARTELLE INTERNE DA NON VERSIONARE
 
 github/
 _backup_github/
-
 
 # BACKUP, ARCHIVI E FILE COMPRESSI
 
@@ -61,28 +53,28 @@ _backup_github/
 *.tar
 *.gz
 
-
 # ESEGUIBILI E FILE DI INSTALLAZIONE
 
 *.exe
 *.msi
 
-
 # FILE DI TEST O SPECIFICHE TEMPORANEE
 
 *.spec
 
-
 # AUDIO SORGENTE PESANTE
+
 # Nel sito devono restare solo gli audio finali ottimizzati, per esempio MP3 leggeri.
+
 # WAV e FLAC sono sorgenti di lavoro, non asset da caricare nel repository.
 
 public/audio/*.wav
 public/audio/*.flac
 
-
 # VIDEO SORGENTE PESANTE
+
 # Lasciare nel repository solo MP4 ottimizzati per il web.
+
 # I formati sorgente o intermedi vanno tenuti fuori da Git.
 
 public/**/*.mov
@@ -91,6 +83,21 @@ public/**/*.mkv
 public/**/*.wmv
 public/**/*.flv
 
+# TOOL DI OTTIMIZZAZIONE IMMAGINI
+
+# picture_update è la cartella di ingresso per immagini e video grezzi.
+
+# picture è la cartella finale usata dal sito.
+
+# picture_optimized e picture_originale_non_ottimizzata sono cartelle di lavoro o backup locale.
+
+# I file original e tmp sono copie temporanee o di sicurezza create durante le prove con Sharp.
+
+public/picture_update/
+public/picture_optimized/
+public/picture_originale_non_ottimizzata/
+public/picture/**/*-original.*
+public/picture/**/*.tmp.webp
 
 # FILE TEMPORANEI DI BACKUP CREATI DA EDITOR O SISTEMA
 
@@ -98,4 +105,3 @@ public/**/*.flv
 *.tmp
 *.temp
 ~$*
-```
