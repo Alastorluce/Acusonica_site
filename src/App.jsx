@@ -19,7 +19,19 @@ const basePath = import.meta.env.BASE_URL;
 
 const logoBackground = `${basePath}logo/acusonica logo sito.png`;
 const logoIcon = `${basePath}acusonica icona.png`;
-const ambientAudio = `${basePath}audio/ambience.mp3`;
+const ambientAudioDesktop = `${basePath}audio/ambience.mp3`;
+const ambientAudioMobile = `${basePath}audio/ambience-mobile.mp3`;
+
+function getAmbientAudioSource() {
+  if (typeof window === "undefined") {
+    return ambientAudioDesktop;
+  }
+
+  const isMobileViewport = window.matchMedia("(max-width: 768px)").matches;
+  const isTouchDevice = navigator.maxTouchPoints > 0;
+
+  return isMobileViewport || isTouchDevice ? ambientAudioMobile : ambientAudioDesktop;
+}
 
 const companyData = {
   name: "ACUSONICA PROFESSIONAL SOUND SOLUTION",
@@ -192,6 +204,7 @@ function groupedMediaSources(folder) {
 }
 
 function AmbientAudio() {
+  const [audioSource] = useState(() => getAmbientAudioSource());
   const audioRef = useRef(null);
   const fadeIntervalRef = useRef(null);
   const animationRef = useRef(null);
@@ -275,7 +288,7 @@ function AmbientAudio() {
       const link = document.createElement("link");
       link.rel = "preload";
       link.as = "audio";
-      link.href = ambientAudio;
+      link.href = audioSource;
       link.type = "audio/mpeg";
       link.setAttribute("data-acusonica-audio", "true");
       document.head.appendChild(link);
@@ -292,7 +305,7 @@ function AmbientAudio() {
       audio.muted = false;
       audio.playsInline = true;
       audio.preload = "auto";
-      audio.src = ambientAudio;
+      audio.src = audioSource;
       audio.load();
     };
 
@@ -306,7 +319,7 @@ function AmbientAudio() {
         cacheControllerRef.current = controller;
 
         try {
-          await fetch(ambientAudio, {
+          await fetch(audioSource, {
             cache: "force-cache",
             signal: controller.signal,
           });
@@ -474,7 +487,7 @@ function AmbientAudio() {
       audio.preload = "auto";
 
       if (!audio.src) {
-        audio.src = ambientAudio;
+        audio.src = audioSource;
         audio.load();
       }
 
@@ -559,11 +572,12 @@ function AmbientAudio() {
         audioContextRef.current = null;
       }
     };
-  }, []);
+  }, [audioSource]);
 
   return (
     <audio
       ref={audioRef}
+      src={audioSource}
       preload="auto"
       loop
       playsInline
