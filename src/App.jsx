@@ -27,10 +27,16 @@ function getAmbientAudioSource() {
     return ambientAudioDesktop;
   }
 
-  const isMobileViewport = window.matchMedia("(max-width: 768px)").matches;
-  const isTouchDevice = navigator.maxTouchPoints > 0;
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera || "";
 
-  return isMobileViewport || isTouchDevice ? ambientAudioMobile : ambientAudioDesktop;
+  const isMobileUserAgent =
+    /android|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+
+  const isSmallViewport = window.matchMedia("(max-width: 640px)").matches;
+
+  return isMobileUserAgent || isSmallViewport
+    ? ambientAudioMobile
+    : ambientAudioDesktop;
 }
 
 const companyData = {
