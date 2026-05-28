@@ -164,7 +164,7 @@ const cadItems = [
 ];
 
 function isVideo(path) {
-  return /\.(mp4|webm|mov)$/i.test(path);
+  return /\.mp4$/i.test(path);
 }
 
 function mediaSources(folder) {
@@ -183,7 +183,7 @@ function groupedMediaSources(folder) {
     const number = String(index).padStart(2, "0");
 
     groups.push([
-      `${basePath}picture/${folder}/${number}.webp`, 
+      `${basePath}picture/${folder}/${number}.webp`,
       `${basePath}picture/${folder}/${number}.mp4`,
     ]);
   }
@@ -204,58 +204,56 @@ function AmbientAudio({ onPulseChange }) {
   const transientPeakRef = useRef(0);
 
   useEffect(() => {
-  const isMobileAudio = window.matchMedia("(max-width: 768px)").matches;
-  const preparedAudio = audioRef.current;
+    const isMobileAudio = window.matchMedia("(max-width: 768px)").matches;
 
-  if (preparedAudio) {
-    preparedAudio.preload = "auto";
-    preparedAudio.load();
-  }
-
-  const startAudio = async () => {
-    const audio = audioRef.current;
-
-    if (!audio || hasStartedRef.current || isStartingRef.current) {
-      return;
-    }
-
-    isStartingRef.current = true;
-
-    audio.volume = 0;
-    audio.loop = true;
-    audio.muted = false;
-    audio.playsInline = true;
-
-    try {
-      await audio.play();
-
-      hasStartedRef.current = true;
-
-      const targetVolume = 0.22;
-      const fadeDuration = 6000;
-      const steps = 80;
-      const stepTime = fadeDuration / steps;
-      const volumeStep = targetVolume / steps;
-
-      let currentStep = 0;
-
-      if (fadeIntervalRef.current) {
-        window.clearInterval(fadeIntervalRef.current);
+    const clearAnimation = () => {
+      if (!animationRef.current) {
+        return;
       }
 
-      fadeIntervalRef.current = window.setInterval(() => {
-        currentStep += 1;
-        audio.volume = Math.min(targetVolume, volumeStep * currentStep);
+      if (isMobileAudio) {
+        window.clearTimeout(animationRef.current);
+      } else {
+        window.cancelAnimationFrame(animationRef.current);
+      }
 
-        if (currentStep >= steps && fadeIntervalRef.current) {
-          window.clearInterval(fadeIntervalRef.current);
-          fadeIntervalRef.current = null;
+      animationRef.current = null;
+    };
+
+    const removeStartListeners = () => {
+      document.removeEventListener("click", startAudio);
+      document.removeEventListener("pointerup", startAudio);
+      document.removeEventListener("touchend", startAudio);
+      document.removeEventListener("keydown", startAudio);
+    };
+
+    const startAudio = async () => {
+      const audio = audioRef.current;
+
+      if (!audio || hasStartedRef.current || isStartingRef.current) {
+        return;
+      }
+
+      isStartingRef.current = true;
+
+      audio.volume = 0;
+      audio.loop = true;
+      audio.muted = false;
+      audio.playsInline = true;
+
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+          await audio.play();
+
+          hasStartedRef.current = true;
+          onPulseChange(1);
+          removeStartListeners();
+
+          return;
         }
-      }, stepTime);
 
-      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-      if (AudioContextClass) {
         const audioContext = new AudioContextClass();
         audioContextRef.current = audioContext;
 
@@ -266,7 +264,7 @@ function AmbientAudio({ onPulseChange }) {
         const analyser = audioContext.createAnalyser();
 
         analyser.fftSize = isMobileAudio ? 512 : 2048;
-        analyser.smoothingTimeConstant = isMobileAudio ? 0.78 : 0.62;
+        analyser.smoothingTimeConstant = isMobileAudio ? 0.74 : 0.62;
 
         analyserRef.current = analyser;
 
@@ -279,27 +277,67 @@ function AmbientAudio({ onPulseChange }) {
           sourceRef.current = source;
         }
 
+        await audio.play();
+
+        hasStartedRef.current = true;
+        removeStartListeners();
+
+        const targetVolume = isMobileAudio ? 0.18 : 0.22;
+        const fadeDuration = isMobileAudio ? 2500 : 6000;
+        const steps = isMobileAudio ? 40 : 80;
+        const stepTime = fadeDuration / steps;
+        const volumeStep = targetVolume / steps;
+
+        let currentStep = 0;
+
+        if (fadeIntervalRef.current) {
+          window.clearInterval(fadeIntervalRef.current);
+        }
+
+        fadeIntervalRef.current = window.setInterval(() => {
+          currentStep += 1;
+          audio.volume = Math.min(targetVolume, volumeStep * currentStep);
+
+          if (currentStep >= steps && fadeIntervalRef.current) {
+            window.clearInterval(fadeIntervalRef.current);
+            fadeIntervalRef.current = null;
+          }
+        }, stepTime);
+
         const frequencyData = new Uint8Array(analyser.frequencyBinCount);
 
         const analyzeBass = () => {
           analyser.getByteFrequencyData(frequencyData);
 
-          const bassBins = frequencyData.slice(1, 14);
-          const bassWeights = [
-            3.6,
-            3.2,
-            2.8,
-            2.3,
-            1.8,
-            1.4,
-            1.1,
-            0.8,
-            0.6,
-            0.45,
-            0.3,
-            0.2,
-            0.15,
-          ];
+          const bassBins = isMobileAudio
+            ? frequencyData.slice(1, 8)
+            : frequencyData.slice(1, 14);
+
+          const bassWeights = isMobileAudio
+            ? [
+                3.2,
+                2.6,
+                2.0,
+                1.4,
+                1.0,
+                0.7,
+                0.45,
+              ]
+            : [
+                3.6,
+                3.2,
+                2.8,
+                2.3,
+                1.8,
+                1.4,
+                1.1,
+                0.8,
+                0.6,
+                0.45,
+                0.3,
+                0.2,
+                0.15,
+              ];
 
           const weightedBassSum = bassBins.reduce((sum, value, index) => {
             return sum + value * bassWeights[index];
@@ -311,84 +349,69 @@ function AmbientAudio({ onPulseChange }) {
           const bassLevel = weightedBassAverage / 255;
           const bassRise = Math.max(0, bassLevel - previousBassRef.current);
 
-          previousBassRef.current = previousBassRef.current * 0.58 + bassLevel * 0.42;
+          previousBassRef.current =
+            previousBassRef.current * 0.62 + bassLevel * 0.38;
 
-          const transientAmount = Math.min(1, bassRise * 7);
+          const transientAmount = Math.min(1, bassRise * 6);
 
           transientPeakRef.current = Math.max(
             transientAmount,
-            transientPeakRef.current * 0.9
+            transientPeakRef.current * 0.88
           );
 
-          const bodyPulse = bassLevel * 0.12;
-          const transientPulse = transientPeakRef.current * 0.28;
+          const bodyPulse = bassLevel * 0.1;
+          const transientPulse = transientPeakRef.current * 0.24;
 
           const pulse = 1 + bodyPulse + transientPulse;
 
           onPulseChange(pulse);
 
           if (isMobileAudio) {
-            animationRef.current = window.setTimeout(analyzeBass, 80);
+            animationRef.current = window.setTimeout(analyzeBass, 90);
           } else {
             animationRef.current = window.requestAnimationFrame(analyzeBass);
           }
         };
 
+        clearAnimation();
         analyzeBass();
+      } catch (error) {
+        hasStartedRef.current = false;
+        previousBassRef.current = 0;
+        transientPeakRef.current = 0;
+        onPulseChange(1);
+      } finally {
+        isStartingRef.current = false;
+      }
+    };
+
+    document.addEventListener("click", startAudio);
+    document.addEventListener("pointerup", startAudio);
+    document.addEventListener("touchend", startAudio);
+    document.addEventListener("keydown", startAudio);
+
+    return () => {
+      removeStartListeners();
+
+      if (fadeIntervalRef.current) {
+        window.clearInterval(fadeIntervalRef.current);
+        fadeIntervalRef.current = null;
       }
 
-      document.removeEventListener("click", startAudio);
-      document.removeEventListener("pointerup", startAudio);
-      document.removeEventListener("touchend", startAudio);
-      document.removeEventListener("keydown", startAudio);
-    } catch (error) {
-      hasStartedRef.current = false;
-      previousBassRef.current = 0;
-      transientPeakRef.current = 0;
-      onPulseChange(1);
-    } finally {
-      isStartingRef.current = false;
-    }
-  };
+      clearAnimation();
 
-  document.addEventListener("click", startAudio);
-  document.addEventListener("pointerup", startAudio);
-  document.addEventListener("touchend", startAudio);
-  document.addEventListener("keydown", startAudio);
-
-  return () => {
-    document.removeEventListener("click", startAudio);
-    document.removeEventListener("pointerup", startAudio);
-    document.removeEventListener("touchend", startAudio);
-    document.removeEventListener("keydown", startAudio);
-
-    if (fadeIntervalRef.current) {
-      window.clearInterval(fadeIntervalRef.current);
-      fadeIntervalRef.current = null;
-    }
-
-    if (animationRef.current) {
-      if (isMobileAudio) {
-        window.clearTimeout(animationRef.current);
-      } else {
-        window.cancelAnimationFrame(animationRef.current);
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
       }
-
-      animationRef.current = null;
-    }
-
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-  };
-}, [onPulseChange]);
+    };
+  }, [onPulseChange]);
 
   return (
     <audio
       ref={audioRef}
       src={ambientAudio}
-      preload="auto"
+      preload="metadata"
       loop
       playsInline
     />
@@ -571,9 +594,13 @@ function HorizontalShowcase() {
 
   const handleScroll = () => {
     const element = wrapperRef.current;
-    if (!element) return;
+
+    if (!element) {
+      return;
+    }
 
     const max = element.scrollWidth - element.clientWidth;
+
     setProgress(max > 0 ? element.scrollLeft / max : 0);
   };
 
@@ -1216,7 +1243,7 @@ function Contact({ audioPulse }) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.16 }}
-          className="mt-32 grid w-full gap-4 rounded-[2rem] border border-white/10 bg-black/45 p-8 text-left text-base leading-8 text-white/72 shadow-2xl backdrop-blur md:mt-87 md:grid-cols-2"
+          className="mt-32 grid w-full gap-4 rounded-[2rem] border border-white/10 bg-black/45 p-8 text-left text-base leading-8 text-white/72 shadow-2xl backdrop-blur md:mt-72 md:grid-cols-2"
         >
           <div>
             <p className="font-semibold text-white">CEO</p>
