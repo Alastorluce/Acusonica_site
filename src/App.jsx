@@ -272,7 +272,7 @@ function AmbientAudio({ onPulseChange }) {
 
           const analyser = audioContext.createAnalyser();
 
-          analyser.fftSize = isMobileAudio ? 512 : 2048;
+          aanalyser.fftSize = isMobileAudio ? 1024 : 2048;
           analyser.smoothingTimeConstant = isMobileAudio ? 0.74 : 0.62;
 
           if (!sourceRef.current) {
@@ -290,34 +290,38 @@ function AmbientAudio({ onPulseChange }) {
             analyser.getByteFrequencyData(frequencyData);
 
             const bassBins = isMobileAudio
-              ? frequencyData.slice(1, 8)
-              : frequencyData.slice(1, 14);
+            ? frequencyData.slice(1, 12)
+            : frequencyData.slice(1, 14);
 
-            const bassWeights = isMobileAudio
-              ? [
-                  3.2,
-                  2.6,
-                  2.0,
-                  1.4,
-                  1.0,
-                  0.7,
-                  0.45,
-                ]
-              : [
-                  3.6,
-                  3.2,
-                  2.8,
-                  2.3,
-                  1.8,
-                  1.4,
-                  1.1,
-                  0.8,
-                  0.6,
-                  0.45,
-                  0.3,
-                  0.2,
-                  0.15,
-                ];
+          const bassWeights = isMobileAudio
+            ? [
+                3.8,
+                3.3,
+                2.8,
+                2.2,
+                1.7,
+                1.3,
+                1.0,
+                0.75,
+                0.55,
+                0.35,
+                0.2,
+              ]
+            : [
+                3.6,
+                3.2,
+                2.8,
+                2.3,
+                1.8,
+                1.4,
+                1.1,
+                0.8,
+                0.6,
+                0.45,
+                0.3,
+                0.2,
+                0.15,
+              ];
 
             const weightedBassSum = bassBins.reduce((sum, value, index) => {
               return sum + value * bassWeights[index];
@@ -347,7 +351,7 @@ function AmbientAudio({ onPulseChange }) {
             onPulseChange(pulse);
 
             if (isMobileAudio) {
-              animationRef.current = window.setTimeout(analyzeBass, 90);
+              animationRef.current = window.setTimeout(analyzeBass, 60);
             } else {
               animationRef.current = window.requestAnimationFrame(analyzeBass);
             }
