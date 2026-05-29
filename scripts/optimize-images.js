@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import sharp from "sharp";
+import { spawnSync } from "child_process";
 
 const root = process.cwd();
 
@@ -13,6 +14,14 @@ const videoExtensions = new Set([".mp4"]);
 const maxWidth = 1200;
 const quality = 78;
 const numberWidth = 2;
+
+const videoMaxWidth = 1920;
+const videoCrf = "23";
+const videoPreset = "medium";
+const videoAudioBitrate = "128k";
+const minVideoSavingRatio = 0.05;
+
+let ffmpegAvailable = null;
 
 function walk(dir) {
   if (!fs.existsSync(dir)) {
@@ -35,6 +44,12 @@ function walk(dir) {
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
+  }
+}
+
+function removeIfExists(filePath) {
+  if (fs.existsSync(filePath)) {
+    fs.rmSync(filePath, { force: true });
   }
 }
 
@@ -110,6 +125,21 @@ function getNextFreeNumber(categoryDir, extension, reservedNumbers) {
   return candidate;
 }
 
+function hasFfmpeg() {
+  if (ffmpegAvailable !== null) {
+    return ffmpegAvailable;
+  }
+
+  const result = spawnSync("ffmpeg", ["-version"], {
+    stdio: "ignore",
+    shell: false,
+  });
+
+  ffmpegAvailable = result.status === 0 && !result.error;
+
+  return ffmpegAvailable;
+}
+
 async function optimizeImage(filePath, categoryDir, reservedImageNumbers) {
   const number = getNextFreeNumber(categoryDir, ".webp", reservedImageNumbers);
   const outputName = `${formatNumber(number)}.webp`;
@@ -136,17 +166,91 @@ async function optimizeImage(filePath, categoryDir, reservedImageNumbers) {
   );
 }
 
-function copyVideo(filePath, categoryDir, reservedVideoNumbers) {
-  const number = getNextFreeNumber(categoryDir, ".mp4", reservedVideoNumbers);
-  const outputName = `${formatNumber(number)}.mp4`;
-  const outputPath = path.join(categoryDir, outputName);
-
+function copyVideoOriginal(filePath, outputPath, reason) {
   fs.copyFileSync(filePath, outputPath);
 
   const size = fs.statSync(outputPath).size;
 
   console.log(
-    `VID  ${path.relative(root, filePath)}  ->  ${path.relative(root, outputPath)}  ${formatMB(size)}`
+    `VID  ${path.relative(root, filePath)}  ->  ${path.relative(root, outputPath)}  copia originale  ${formatMB(size)}  ${reason}`
+  );
+}
+
+function optimizeVideo(filePath, categoryDir, reservedVideoNumbers) {
+  const number = getNextFreeNumber(categoryDir, ".mp4", reservedVideoNumbers);
+  const outputName = `${formatNumber(number)}.mp4`;
+  const outputPath = path.join(categoryDir, outputName);
+  const tempOutputPath = path.join(
+    categoryDir,
+    `.${path.parse(outputName).name}.optimized.${process.pid}.tmp.mp4`
+  );
+
+  const before = fs.statSync(filePath).size;
+
+  removeIfExists(tempOutputPath);
+
+  if (!hasFfmpeg()) {
+    copyVideoOriginal(filePath, outputPath, "FFmpeg non trovato nel PATH.");
+    return;
+  }
+
+  const args = [
+    "-y",
+    "-i",
+    filePath,
+    "-vf",
+    `scale=${videoMaxWidth}:-2:force_original_aspect_ratio=decrease`,
+    "-c:v",
+    "libx264",
+    "-crf",
+    videoCrf,
+    "-preset",
+    videoPreset,
+    "-c:a",
+    "aac",
+    "-b:a",
+    videoAudioBitrate,
+    "-movflags",
+    "+faststart",
+    tempOutputPath,
+  ];
+
+  const result = spawnSync("ffmpeg", args, {
+    cwd: root,
+    stdio: "pipe",
+    shell: false,
+    encoding: "utf-8",
+  });
+
+  if (result.status !== 0 || !fs.existsSync(tempOutputPath)) {
+    removeIfExists(tempOutputPath);
+    copyVideoOriginal(filePath, outputPath, "ottimizzazione fallita, originale conservato.");
+
+    if (result.stderr) {
+      console.log(result.stderr.trim());
+    }
+
+    return;
+  }
+
+  const after = fs.statSync(tempOutputPath).size;
+  const savingRatio = before > 0 ? (before - after) / before : 0;
+
+  if (after < before && savingRatio >= minVideoSavingRatio) {
+    removeIfExists(outputPath);
+    fs.renameSync(tempOutputPath, outputPath);
+
+    console.log(
+      `VID  ${path.relative(root, filePath)}  ->  ${path.relative(root, outputPath)}  ${formatMB(before)} -> ${formatMB(after)}  salvato ${(savingRatio * 100).toFixed(1)}%`
+    );
+    return;
+  }
+
+  removeIfExists(tempOutputPath);
+  copyVideoOriginal(
+    filePath,
+    outputPath,
+    `ottimizzato non conveniente  ${formatMB(before)} -> ${formatMB(after)}`
   );
 }
 
@@ -169,7 +273,7 @@ async function processCategory(categoryName, files) {
     }
 
     if (videoExtensions.has(ext)) {
-      copyVideo(filePath, categoryDir, reservedVideoNumbers);
+      optimizeVideo(filePath, categoryDir, reservedVideoNumbers);
       continue;
     }
 
@@ -223,7 +327,7 @@ async function main() {
     await processCategory(categoryName, categoryFiles);
   }
 
-  console.log("Importazione e ottimizzazione completate.");
+  console.log("Importazione e ottimizzazione media completate.");
   console.log("Output scritto in public/picture.");
 }
 
