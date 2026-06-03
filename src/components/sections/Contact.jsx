@@ -4,7 +4,6 @@ import { logoBackground } from "../../assets/paths";
 import { companyData } from "../../data/companyData";
 
 export default function Contact({ contactLogoRef }) {
-
   return (
     <section id="contact" className="relative min-h-screen overflow-hidden bg-black/70 px-6 py-28 text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_32%,rgba(255,255,255,0.18),transparent_30%)]" />
@@ -17,8 +16,7 @@ export default function Contact({ contactLogoRef }) {
             backgroundImage: `url("${logoBackground}")`,
             transform: "scale(1)",
             opacity: 0.28,
-            filter: "blur(1.8px)",
-            willChange: "transform, opacity, filter",
+            willChange: "transform, opacity",
           }}
         />
       </div>
