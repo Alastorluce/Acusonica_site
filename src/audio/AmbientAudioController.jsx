@@ -10,7 +10,8 @@ export default function AmbientAudioController({ contactLogoRef }) {
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const sourceRef = useRef(null);
-  const cacheControllerRef = useRef(null);
+  const preloadControllerRef = useRef(null);
+  const blobUrlRef = useRef(null);
   const hasStartedRef = useRef(false);
   const isStartingRef = useRef(false);
   const hasAnalyzerStartedRef = useRef(false);
@@ -65,11 +66,13 @@ export default function AmbientAudioController({ contactLogoRef }) {
         passive: true,
         once: false,
       });
+
       document.addEventListener("touchstart", startAudio, {
         capture: true,
         passive: true,
         once: false,
       });
+
       document.addEventListener("keydown", startAudio, true);
     };
 
@@ -104,33 +107,44 @@ export default function AmbientAudioController({ contactLogoRef }) {
       audio.load();
     };
 
-    const cacheAudioAfterStart = () => {
-      if (!window.fetch || cacheControllerRef.current) {
+    const preloadAudioBlob = async () => {
+      if (!window.fetch || blobUrlRef.current || preloadControllerRef.current) {
         return;
       }
 
-      const run = async () => {
-        const controller = new AbortController();
-        cacheControllerRef.current = controller;
+      const controller = new AbortController();
+      preloadControllerRef.current = controller;
 
-        try {
-          await fetch(audioSource, {
-            cache: "force-cache",
-            signal: controller.signal,
-          });
-        } catch (error) {
-          if (controller.signal.aborted) {
-            return;
-          }
+      try {
+        const response = await fetch(audioSource, {
+          cache: "force-cache",
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          return;
         }
-      };
 
-      window.setTimeout(run, isMobileAudio ? 3500 : 1800);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        blobUrlRef.current = blobUrl;
+
+        const audio = audioRef.current;
+
+        if (audio && !hasStartedRef.current) {
+          audio.src = blobUrl;
+          audio.load();
+        }
+      } catch (error) {
+        if (controller.signal.aborted) {
+          return;
+        }
+      }
     };
 
     const startFade = (audio) => {
-      const fadeDuration = isMobileAudio ? 360 : 760;
-      const steps = isMobileAudio ? 12 : 24;
+      const fadeDuration = isMobileAudio ? 220 : 760;
+      const steps = isMobileAudio ? 8 : 24;
       const stepTime = fadeDuration / steps;
       const startVolume = Number.isFinite(audio.volume) ? audio.volume : 0;
       const volumeStep = (targetVolume - startVolume) / steps;
@@ -178,8 +192,8 @@ export default function AmbientAudioController({ contactLogoRef }) {
 
       if (!analyserRef.current) {
         const analyser = audioContext.createAnalyser();
-        analyser.fftSize = 2048;
-        analyser.smoothingTimeConstant = isMobileAudio ? 0.72 : 0.62;
+        analyser.fftSize = isMobileAudio ? 1024 : 2048;
+        analyser.smoothingTimeConstant = isMobileAudio ? 0.78 : 0.62;
 
         sourceRef.current.connect(analyser);
         analyser.connect(audioContext.destination);
@@ -229,17 +243,17 @@ export default function AmbientAudioController({ contactLogoRef }) {
         const bassLevel = weightedBassAverage / 255;
         const bassRise = Math.max(0, bassLevel - previousBassRef.current);
 
-        previousBassRef.current = previousBassRef.current * 0.66 + bassLevel * 0.34;
+        previousBassRef.current = previousBassRef.current * 0.7 + bassLevel * 0.3;
 
-        const transientAmount = Math.min(1, bassRise * 6.4);
+        const transientAmount = Math.min(1, bassRise * 5.8);
 
         transientPeakRef.current = Math.max(
           transientAmount,
-          transientPeakRef.current * 0.88
+          transientPeakRef.current * 0.9
         );
 
-        const bodyPulse = bassLevel * 0.1;
-        const transientPulse = transientPeakRef.current * 0.24;
+        const bodyPulse = bassLevel * 0.08;
+        const transientPulse = transientPeakRef.current * 0.18;
         const pulse = 1 + bodyPulse + transientPulse;
 
         emitPulse(pulse);
@@ -262,7 +276,7 @@ export default function AmbientAudioController({ contactLogoRef }) {
           transientPeakRef.current = 0;
           emitPulse(1);
         });
-      }, isMobileAudio ? 520 : 220);
+      }, isMobileAudio ? 700 : 220);
     };
 
     const startAudio = async () => {
@@ -281,6 +295,11 @@ export default function AmbientAudioController({ contactLogoRef }) {
       audio.playsInline = true;
       audio.preload = "auto";
 
+      if (blobUrlRef.current && audio.src !== blobUrlRef.current) {
+        audio.src = blobUrlRef.current;
+        audio.load();
+      }
+
       if (!audio.src) {
         audio.src = audioSource;
         audio.load();
@@ -296,7 +315,6 @@ export default function AmbientAudioController({ contactLogoRef }) {
         hasStartedRef.current = true;
         startFade(audio);
         startAnalyzerDeferred(audio);
-        cacheAudioAfterStart();
       } catch (error) {
         isStartingRef.current = false;
         addStartListeners();
@@ -308,6 +326,11 @@ export default function AmbientAudioController({ contactLogoRef }) {
 
     injectAudioPreload();
     warmAudioElement();
+
+    window.setTimeout(() => {
+      preloadAudioBlob();
+    }, isMobileAudio ? 900 : 1200);
+
     addStartListeners();
 
     const handleVisibilityChange = () => {
@@ -357,9 +380,14 @@ export default function AmbientAudioController({ contactLogoRef }) {
         audio.removeEventListener("playing", handlePlaying);
       }
 
-      if (cacheControllerRef.current) {
-        cacheControllerRef.current.abort();
-        cacheControllerRef.current = null;
+      if (preloadControllerRef.current) {
+        preloadControllerRef.current.abort();
+        preloadControllerRef.current = null;
+      }
+
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
       }
 
       if (audioContextRef.current) {
