@@ -1,5 +1,7 @@
 import { basePath } from "../assets/paths";
 
+const GALLERY_MEDIA_LIMIT = 60;
+
 export function isVideo(path) {
   return /\.mp4$/i.test(path);
 }
@@ -16,7 +18,7 @@ export function mediaSources(folder) {
 export function groupedMediaSources(folder) {
   const groups = [];
 
-  for (let index = 1; index <= 12; index += 1) {
+  for (let index = 1; index <= GALLERY_MEDIA_LIMIT; index += 1) {
     const number = String(index).padStart(2, "0");
 
     groups.push([
