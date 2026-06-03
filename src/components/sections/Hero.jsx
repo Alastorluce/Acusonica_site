@@ -3,27 +3,6 @@ import { ArrowRight } from "lucide-react";
 import { logoBackground } from "../../assets/paths";
 
 export default function Hero() {
-  const isMobileVisual =
-    typeof window !== "undefined" &&
-    window.matchMedia("(max-width: 768px)").matches;
-
-  const desktopLogoMotion = isMobileVisual
-    ? {}
-    : {
-        animate: {
-          scale: [1, 1.055, 1.018, 1.075, 1.025, 1.06, 1],
-          x: [0, -8, 6, 10, -6, 8, 0],
-          y: [0, -5, 3, -8, 5, -3, 0],
-          rotate: [0, -0.2, 0.12, 0.28, -0.18, 0.1, 0],
-        },
-        transition: {
-          duration: 18,
-          repeat: Infinity,
-          ease: "easeInOut",
-          times: [0, 0.16, 0.34, 0.52, 0.68, 0.84, 1],
-        },
-      };
-
   return (
     <section id="home" className="relative min-h-screen overflow-hidden bg-black text-white">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.16),transparent_28%),radial-gradient(circle_at_80%_30%,rgba(0,180,255,0.15),transparent_30%),linear-gradient(135deg,#000,#111_45%,#050505)]" />
@@ -32,9 +11,19 @@ export default function Hero() {
         className="absolute inset-0 bg-no-repeat opacity-[0.36] mix-blend-screen [background-position:65%_13%] [background-size:min(62vw,300px)] md:opacity-[0.18] md:[background-position:68%_18%] md:[background-size:min(42vw,560px)]"
         style={{
           backgroundImage: `url("${logoBackground}")`,
-          willChange: isMobileVisual ? "auto" : "transform",
         }}
-        {...desktopLogoMotion}
+        animate={{
+          scale: [1, 1.055, 1.018, 1.075, 1.025, 1.06, 1],
+          x: [0, -8, 6, 10, -6, 8, 0],
+          y: [0, -5, 3, -8, 5, -3, 0],
+          rotate: [0, -0.2, 0.12, 0.28, -0.18, 0.1, 0],
+        }}
+        transition={{
+          duration: 18,
+          repeat: Infinity,
+          ease: "easeInOut",
+          times: [0, 0.16, 0.34, 0.52, 0.68, 0.84, 1],
+        }}
       />
 
       <div className="absolute inset-0 bg-black/35" />
