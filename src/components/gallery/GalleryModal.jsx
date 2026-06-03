@@ -21,9 +21,11 @@ export default function GalleryModal({ item, onClose }) {
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {groupedMediaSources(item.folder).map((sources, index) => (
-            <div key={`${item.folder}-${index}`} className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-3">
-              <GalleryModalMedia sources={sources} title={`${item.title} ${index + 1}`} />
-            </div>
+            <GalleryModalMedia
+              key={`${item.folder}-${index}`}
+              sources={sources}
+              title={`${item.title} ${index + 1}`}
+            />
           ))}
         </div>
       </div>
